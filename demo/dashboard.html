@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 总览</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">总览</div>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-icon blue">📊</div>
+          <div class="stat-info">
+            <div class="stat-label">今日处理</div>
+            <div class="stat-value">128<span class="stat-unit">笔交易</span></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-info">
+            <div class="stat-label">今日成功</div>
+            <div class="stat-value">125<span class="stat-unit">笔交易</span></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">⏳</div>
+          <div class="stat-info">
+            <div class="stat-label">今日待处理</div>
+            <div class="stat-value">3<span class="stat-unit">笔交易</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-title">今日交易趋势</div>
+        <canvas id="trendChart" height="200"></canvas>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">最近交易</div>
+          <ul class="quick-list">
+            <li onclick="location.href='payment-query.html'">
+              <span class="ql-label">MSTP-20260518-0001 <span class="tag tag-blue" style="margin-left:6px">CNAPS</span></span>
+              <span class="ql-extra">100,000.00</span>
+            </li>
+            <li onclick="location.href='payment-query.html'">
+              <span class="ql-label">MSTP-20260518-0002 <span class="tag tag-purple" style="margin-left:6px">CIPS</span></span>
+              <span class="ql-extra">50,000.00</span>
+            </li>
+            <li onclick="location.href='payment-query.html'">
+              <span class="ql-label">MSTP-20260518-0003 <span class="tag tag-blue" style="margin-left:6px">CNAPS</span></span>
+              <span class="ql-extra">80,000.00</span>
+            </li>
+            <li onclick="location.href='payment-query.html'">
+              <span class="ql-label">MSTP-20260518-0004 <span class="tag tag-blue" style="margin-left:6px">CNAPS</span></span>
+              <span class="ql-extra">250,000.00</span>
+            </li>
+            <li onclick="location.href='payment-query.html'">
+              <span class="ql-label">MSTP-20260518-0005 <span class="tag tag-purple" style="margin-left:6px">CIPS</span></span>
+              <span class="ql-extra">30,000.00</span>
+            </li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">待办事项</div>
+          <div class="todo-item" onclick="location.href='approval-pending.html'">
+            <span class="todo-icon">🔔</span>
+            <span>3 笔待审批</span>
+          </div>
+          <div class="todo-item" onclick="location.href='payer-config.html'">
+            <span class="todo-icon">🔔</span>
+            <span>1 笔待授权</span>
+          </div>
+          <div class="todo-item" onclick="location.href='payment-query.html'">
+            <span class="todo-icon">🔔</span>
+            <span>2 笔状态轮询中</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('dashboard');
+initHeader([{text:'工作台',href:'dashboard.html'},{text:'总览'}]);
+
+const ctx = document.getElementById('trendChart').getContext('2d');
+const hours = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+const data = [5,18,28,22,8,15,20,12,6,4];
+const maxVal = Math.max(...data);
+const w = ctx.canvas.width = ctx.canvas.parentElement.clientWidth - 40;
+const h = ctx.canvas.height = 200;
+const padL = 40, padR = 20, padT = 20, padB = 30;
+const chartW = w - padL - padR;
+const chartH = h - padT - padB;
+
+ctx.clearRect(0,0,w,h);
+
+ctx.strokeStyle = '#e8e8e8';
+ctx.lineWidth = 1;
+for (let i = 0; i <= 4; i++) {
+  const y = padT + (chartH / 4) * i;
+  ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+  ctx.fillStyle = '#999'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText(Math.round(maxVal - (maxVal / 4) * i), padL - 8, y + 4);
+}
+
+const grad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
+grad.addColorStop(0, 'rgba(22,119,255,0.15)');
+grad.addColorStop(1, 'rgba(22,119,255,0.01)');
+
+ctx.beginPath();
+data.forEach((v, i) => {
+  const x = padL + (chartW / (data.length - 1)) * i;
+  const y = padT + chartH - (v / maxVal) * chartH;
+  if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+});
+ctx.strokeStyle = '#1677ff'; ctx.lineWidth = 2; ctx.stroke();
+
+ctx.lineTo(padL + chartW, padT + chartH);
+ctx.lineTo(padL, padT + chartH);
+ctx.closePath();
+ctx.fillStyle = grad; ctx.fill();
+
+data.forEach((v, i) => {
+  const x = padL + (chartW / (data.length - 1)) * i;
+  const y = padT + chartH - (v / maxVal) * chartH;
+  ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#1677ff'; ctx.fill();
+  ctx.fillStyle = '#666'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(hours[i], x, h - 8);
+});
+</script>
+</body>
+</html>

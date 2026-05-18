@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 收款账号映射</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">收款账号映射</div>
+        <button class="btn btn-primary" onclick="openModal('addModal')">+ 新增</button>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">收款账号</span>
+          <input class="form-input" placeholder="请输入收款账号">
+        </div>
+        <div class="form-item">
+          <span class="form-label">支付通道</span>
+          <select class="form-select"><option>全部</option><option>CNAPS</option><option>CIPS</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">状态</span>
+          <select class="form-select"><option>全部</option><option>有效</option><option>停用</option></select>
+        </div>
+        <button class="btn btn-primary">查询</button>
+        <button class="btn">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>序号</th><th>收款账号</th><th>账户名称</th><th>支付通道</th><th>账户类型</th><th>状态</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span>共 6 条</span>
+          <div class="pagination-pages">
+            <div class="page-btn active">1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">收款账号映射详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+  </div>
+</div>
+
+<div id="addModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">新增收款账号映射</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-label required">收款账号</div>
+        <input class="form-input" placeholder="请输入收款账号">
+        <div class="form-label required">账户名称</div>
+        <input class="form-input" placeholder="请输入账户名称">
+        <div class="form-label required">支付通道</div>
+        <select class="form-select"><option value="">请选择</option><option>CNAPS</option><option>CIPS</option></select>
+        <div class="form-label required">账户类型</div>
+        <select class="form-select"><option value="">请选择</option><option>内部</option><option>外部</option></select>
+        <div class="form-label">备注</div>
+        <input class="form-input" placeholder="请输入备注">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('addModal')">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('account-mapping');
+initHeader([{text:'映射管理',href:'#'},{text:'账号映射'}]);
+
+const data = [
+  { id:1, accountNo:'6225880123456789', accountName:'张三', channel:'CNAPS', type:'外部', status:'有效', remark:'测试账号', maker:'user001', makerTime:'2026-05-18 10:00:00', checker:'user002', checkerTime:'2026-05-18 10:05:00' },
+  { id:2, accountNo:'6228480123450045', accountName:'李四', channel:'CIPS', type:'外部', status:'有效', remark:'', maker:'user001', makerTime:'2026-05-17 14:20:00', checker:'user003', checkerTime:'2026-05-17 14:30:00' },
+  { id:3, accountNo:'6221880123450123', accountName:'王五', channel:'CNAPS', type:'内部', status:'停用', remark:'已停用', maker:'user002', makerTime:'2026-05-16 09:00:00', checker:'user001', checkerTime:'2026-05-16 09:10:00' },
+  { id:4, accountNo:'6226880123450567', accountName:'赵六', channel:'CIPS', type:'外部', status:'有效', remark:'跨境账户', maker:'user003', makerTime:'2026-05-15 16:00:00', checker:'user002', checkerTime:'2026-05-15 16:10:00' },
+  { id:5, accountNo:'6217880123450890', accountName:'孙七', channel:'CNAPS', type:'内部', status:'有效', remark:'', maker:'user001', makerTime:'2026-05-14 11:30:00', checker:'user003', checkerTime:'2026-05-14 11:40:00' },
+  { id:6, accountNo:'6229880123450234', accountName:'周八', channel:'CIPS', type:'外部', status:'有效', remark:'跨境结算户', maker:'user002', makerTime:'2026-05-13 15:00:00', checker:'user001', checkerTime:'2026-05-13 15:15:00' },
+];
+
+const tbody = document.getElementById('tableBody');
+data.forEach(r => {
+  const statusTag = r.status === '有效' ? '<span class="tag tag-green">有效</span>' : '<span class="tag tag-red">停用</span>';
+  const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+  tbody.innerHTML += `<tr ondblclick="showDetail(${r.id})">
+    <td>${r.id}</td>
+    <td>${maskAccount(r.accountNo)}</td>
+    <td>${maskName(r.accountName)}</td>
+    <td>${channelTag}</td>
+    <td><span class="tag tag-${r.type==='内部'?'blue':'gray'}">${r.type}</span></td>
+    <td>${statusTag}</td>
+    <td>
+      <button class="btn-link btn-sm" onclick="event.stopPropagation();showDetail(${r.id})">详情</button>
+      <button class="btn-link btn-sm" onclick="event.stopPropagation();openModal('addModal')">编辑</button>
+    </td>
+  </tr>`;
+});
+
+function showDetail(id) {
+  const r = data.find(d => d.id === id);
+  if (!r) return;
+  const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-label">收款账号</div><div class="detail-value">${r.accountNo}</div>
+      <div class="detail-label">账户名称</div><div class="detail-value">${r.accountName}</div>
+      <div class="detail-label">支付通道</div><div class="detail-value">${channelTag}</div>
+      <div class="detail-label">账户类型</div><div class="detail-value">${r.type}</div>
+      <div class="detail-label">状态</div><div class="detail-value">${r.status}</div>
+      <div class="detail-label">备注</div><div class="detail-value">${r.remark || '-'}</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">审批信息</div>
+      <div class="detail-grid">
+        <div class="detail-label">制单人</div><div class="detail-value">${r.maker}</div>
+        <div class="detail-label">制单时间</div><div class="detail-value">${r.makerTime}</div>
+        <div class="detail-label">审批人</div><div class="detail-value">${r.checker}</div>
+        <div class="detail-label">审批时间</div><div class="detail-value">${r.checkerTime}</div>
+      </div>
+    </div>`;
+  openModal('detailModal');
+}
+</script>
+</body>
+</html>

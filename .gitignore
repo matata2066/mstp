@@ -1,0 +1,36 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+.trae/
+
+# Build
+target/
+build/
+out/
+dist/
+
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Java
+*.class
+*.jar
+*.war
+
+# Python
+__pycache__/
+*.pyc

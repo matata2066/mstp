@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 支付指令查询</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    .status-flow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin-top: 8px;
+    }
+    .status-node {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      white-space: nowrap;
+      color: #bbb;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      transition: all 0.2s;
+    }
+    .status-node.reached {
+      color: var(--text-secondary);
+      background: #e6f4ff;
+      border-color: #91caff;
+    }
+    .status-node.current {
+      color: #fff;
+      font-weight: 600;
+      border-color: transparent;
+    }
+    .status-node.current.cls-green { background: var(--success); }
+    .status-node.current.cls-blue { background: var(--primary); }
+    .status-node.current.cls-red { background: var(--error); }
+    .status-node.current.cls-orange { background: var(--warning); }
+    .status-node.current.cls-gray { background: #8c8c8c; }
+    .status-arrow {
+      display: inline-flex;
+      align-items: center;
+      color: #d9d9d9;
+      font-size: 10px;
+      margin: 0 2px;
+    }
+    .status-arrow.reached { color: var(--primary); }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">支付指令查询</div>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">交易ID</span>
+          <input class="form-input" placeholder="请输入交易ID">
+        </div>
+        <div class="form-item">
+          <span class="form-label">收款账号</span>
+          <input class="form-input" placeholder="请输入收款账号">
+        </div>
+        <div class="form-item">
+          <span class="form-label">渠道</span>
+          <select class="form-select"><option>全部</option><option>CNAPS</option><option>CIPS</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">状态</span>
+          <select class="form-select"><option>全部</option><option>已接收</option><option>处理中</option><option>支付成功</option><option>支付失败</option><option>已完成</option></select>
+        </div>
+        <button class="btn btn-primary">查询</button>
+        <button class="btn">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>交易ID</th><th>渠道</th><th>付款行</th><th>付款账号</th><th>付款户名</th><th>收款行</th><th>收款账号</th><th>收款户名</th><th>金额</th><th>状态</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span>共 8 条</span>
+          <div class="pagination-pages">
+            <div class="page-btn active">1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal" style="width:700px">
+    <div class="modal-header">
+      <div class="modal-title">交易详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('payment-query');
+initHeader([{text:'交易查询',href:'#'},{text:'支付指令'}]);
+
+const statusMap = {
+  'RECEIVED': { label:'已接收', cls:'gray' },
+  'ENRICHING': { label:'要素补齐中', cls:'gray' },
+  'ENRICHED': { label:'要素已补齐', cls:'gray' },
+  'SENDING': { label:'发送中', cls:'blue' },
+  'SENT': { label:'已发送', cls:'blue' },
+  'POLLING': { label:'状态轮询中', cls:'blue' },
+  'PAYMENT_SUCCESS': { label:'支付成功', cls:'green' },
+  'PAYMENT_FAILED': { label:'支付失败', cls:'red' },
+  'COMPLETED': { label:'已完成', cls:'green' },
+  'SEND_FAILED': { label:'发送失败', cls:'red' },
+  'STATUS_UNKNOWN': { label:'状态未知', cls:'orange' },
+  'CONFIRM_MISMATCH': { label:'动账不一致', cls:'orange' },
+};
+
+const statusSequence = [
+  'RECEIVED','ENRICHING','ENRICHED','SENDING','SENT','POLLING','PAYMENT_SUCCESS','COMPLETED'
+];
+
+const statusBranches = {
+  'SEND_FAILED': { from: 'SENDING', label: '发送失败' },
+  'PAYMENT_FAILED': { from: 'POLLING', label: '支付失败' },
+  'STATUS_UNKNOWN': { from: 'POLLING', label: '状态未知' },
+  'CONFIRM_MISMATCH': { from: 'PAYMENT_SUCCESS', label: '动账不一致' },
+};
+
+function buildStatusFlow(currentStatus) {
+  const s = statusMap[currentStatus] || { label: currentStatus, cls:'gray' };
+  const isBranch = !!statusBranches[currentStatus];
+
+  let reachedSet = new Set();
+  if (!isBranch) {
+    const idx = statusSequence.indexOf(currentStatus);
+    for (let i = 0; i <= idx; i++) reachedSet.add(statusSequence[i]);
+  } else {
+    const branch = statusBranches[currentStatus];
+    const idx = statusSequence.indexOf(branch.from);
+    for (let i = 0; i <= idx; i++) reachedSet.add(statusSequence[i]);
+    reachedSet.add(currentStatus);
+  }
+
+  let html = '<div class="status-flow">';
+  statusSequence.forEach((st, i) => {
+    const isCurrent = st === currentStatus;
+    const isReached = reachedSet.has(st);
+    const stInfo = statusMap[st];
+
+    if (i > 0) {
+      const arrowReached = reachedSet.has(statusSequence[i - 1]) && (isReached || isCurrent);
+      html += `<span class="status-arrow${arrowReached ? ' reached' : ''}">▸</span>`;
+    }
+
+    if (isCurrent) {
+      html += `<span class="status-node current cls-${stInfo.cls}">${stInfo.label}</span>`;
+    } else if (isReached) {
+      html += `<span class="status-node reached">${stInfo.label}</span>`;
+    } else {
+      html += `<span class="status-node">${stInfo.label}</span>`;
+    }
+
+    if (isBranch && statusBranches[currentStatus].from === st) {
+      html += `<span class="status-arrow reached">▸</span>`;
+      const curInfo = statusMap[currentStatus];
+      html += `<span class="status-node current cls-${curInfo.cls}">${curInfo.label}</span>`;
+    }
+  });
+  html += '</div>';
+  return html;
+}
+
+const data = [
+  { id:'MSTP-20260518-0001', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'建设银行北京分行', payeeBankCode:'105100000017', payeeAccount:'6225880123456789', payeeName:'张三', amount:100000.00, currency:'CNY', status:'COMPLETED', downstreamRef:'DS-20260518-123456', sourceMsgId:'MSG-20260518-000001',
+    timeline: [
+      { time:'10:30:00', from:'RECEIVED', to:'ENRICHING' },
+      { time:'10:30:01', from:'ENRICHING', to:'ENRICHED' },
+      { time:'10:30:02', from:'ENRICHED', to:'SENDING' },
+      { time:'10:30:03', from:'SENDING', to:'SENT' },
+      { time:'10:30:04', from:'SENT', to:'POLLING' },
+      { time:'10:32:15', from:'POLLING', to:'PAYMENT_SUCCESS' },
+      { time:'10:33:00', from:'PAYMENT_SUCCESS', to:'COMPLETED' },
+    ]},
+  { id:'MSTP-20260518-0002', channel:'CIPS', payerBank:'兴业银行', payerBankCode:'CIBKCNBJXXX', payerAccount:'0200003609000789012', payerName:'某某科技有限公司', payeeBank:'Citibank N.A.', payeeBankCode:'CITIUS33XXX', payeeAccount:'9876543210123456', payeeName:'John Smith', amount:50000.00, currency:'USD', status:'POLLING', downstreamRef:'DS-20260518-123457', sourceMsgId:'MSG-20260518-000002',
+    timeline: [
+      { time:'10:35:00', from:'RECEIVED', to:'ENRICHING' },
+      { time:'10:35:01', from:'ENRICHING', to:'ENRICHED' },
+      { time:'10:35:02', from:'ENRICHED', to:'SENDING' },
+      { time:'10:35:04', from:'SENDING', to:'SENT' },
+      { time:'10:35:05', from:'SENT', to:'POLLING' },
+    ]},
+  { id:'MSTP-20260518-0003', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'农业银行北京分行', payeeBankCode:'103100000026', payeeAccount:'6228480123450045', payeeName:'李四', amount:80000.00, currency:'CNY', status:'PAYMENT_SUCCESS', downstreamRef:'DS-20260518-123458', sourceMsgId:'MSG-20260518-000003',
+    timeline: [
+      { time:'10:40:00', from:'RECEIVED', to:'ENRICHING' },
+      { time:'10:40:01', from:'ENRICHING', to:'ENRICHED' },
+      { time:'10:40:02', from:'ENRICHED', to:'SENDING' },
+      { time:'10:40:03', from:'SENDING', to:'SENT' },
+      { time:'10:40:04', from:'SENT', to:'POLLING' },
+      { time:'10:42:10', from:'POLLING', to:'PAYMENT_SUCCESS' },
+    ]},
+  { id:'MSTP-20260518-0004', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'中国银行北京分行', payeeBankCode:'104100000004', payeeAccount:'6217880123450890', payeeName:'孙七', amount:250000.00, currency:'CNY', status:'COMPLETED', downstreamRef:'DS-20260518-123459', sourceMsgId:'MSG-20260518-000004',
+    timeline: [
+      { time:'09:15:00', from:'RECEIVED', to:'ENRICHING' },
+      { time:'09:15:01', from:'ENRICHING', to:'ENRICHED' },
+      { time:'09:15:02', from:'ENRICHED', to:'SENDING' },
+      { time:'09:15:03', from:'SENDING', to:'SENT' },
+      { time:'09:15:04', from:'SENT', to:'POLLING' },
+      { time:'09:17:20', from:'POLLING', to:'PAYMENT_SUCCESS' },
+      { time:'09:18:00', from:'PAYMENT_SUCCESS', to:'COMPLETED' },
+    ]},
+  { id:'MSTP-20260518-0005', channel:'CIPS', payerBank:'兴业银行', payerBankCode:'CIBKCNBJXXX', payerAccount:'0200003609000789012', payerName:'某某科技有限公司', payeeBank:'Deutsche Bank AG', payeeBankCode:'DEUTDEFFXXX', payeeAccount:'DE89370400440532013000', payeeName:'Hans Mueller', amount:30000.00, currency:'EUR', status:'POLLING', downstreamRef:'DS-20260518-123460', sourceMsgId:'MSG-20260518-000005',
+    timeline: [
+      { time:'11:00:00', from:'RECEIVED', to:'ENRICHING' },
+      { time:'11:00:01', from:'ENRICHING', to:'ENRICHED' },
+      { time:'11:00:02', from:'ENRICHED', to:'SENDING' },
+      { time:'11:00:04', from:'SENDING', to:'SENT' },
+      { time:'11:00:05', from:'SENT', to:'POLLING' },
+    ]},
+  { id:'MSTP-20260518-0006', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'交通银行北京分行', payeeBankCode:'301290000011', payeeAccount:'6226880123450567', payeeName:'赵六', amount:15000.00, currency:'CNY', status:'SEND_FAILED', downstreamRef:'', sourceMsgId:'MSG-20260518-000006', errorCode:'5001', errorMessage:'下游系统超时',
+    timeline: [
+      { time:'11:20:00', from:'RECEIVED', to:'ENRICHING' },
+      { time:'11:20:01', from:'ENRICHING', to:'ENRICHED' },
+      { time:'11:20:02', from:'ENRICHED', to:'SENDING' },
+      { time:'11:20:32', from:'SENDING', to:'SEND_FAILED' },
+    ]},
+  { id:'MSTP-20260518-0007', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'建设银行北京分行', payeeBankCode:'105100000017', payeeAccount:'6229880123450234', payeeName:'周八', amount:60000.00, currency:'CNY', status:'COMPLETED', downstreamRef:'DS-20260518-123462', sourceMsgId:'MSG-20260518-000007',
+    timeline: [
+      { time:'08:30:00', from:'RECEIVED', to:'ENRICHING' },
+      { time:'08:30:01', from:'ENRICHING', to:'ENRICHED' },
+      { time:'08:30:02', from:'ENRICHED', to:'SENDING' },
+      { time:'08:30:03', from:'SENDING', to:'SENT' },
+      { time:'08:30:04', from:'SENT', to:'POLLING' },
+      { time:'08:32:00', from:'POLLING', to:'PAYMENT_SUCCESS' },
+      { time:'08:33:00', from:'PAYMENT_SUCCESS', to:'COMPLETED' },
+    ]},
+  { id:'MSTP-20260518-0008', channel:'CIPS', payerBank:'招商银行', payerBankCode:'CMBCCNBSXXX', payerAccount:'0200003609000567890', payerName:'某某科技有限公司', payeeBank:'HSBC Holdings', payeeBankCode:'HBUKGB4BXXX', payeeAccount:'GB29NWBK60161331926819', payeeName:'David Brown', amount:75000.00, currency:'USD', status:'PAYMENT_FAILED', downstreamRef:'DS-20260518-123463', sourceMsgId:'MSG-20260518-000008', errorCode:'3002', errorMessage:'余额不足',
+    timeline: [
+      { time:'09:00:00', from:'RECEIVED', to:'ENRICHING' },
+      { time:'09:00:01', from:'ENRICHING', to:'ENRICHED' },
+      { time:'09:00:02', from:'ENRICHED', to:'SENDING' },
+      { time:'09:00:03', from:'SENDING', to:'SENT' },
+      { time:'09:00:04', from:'SENT', to:'POLLING' },
+      { time:'09:05:00', from:'POLLING', to:'PAYMENT_FAILED' },
+    ]},
+];
+
+const tbody = document.getElementById('tableBody');
+data.forEach(r => {
+  const s = statusMap[r.status] || { label: r.status, cls:'gray' };
+  const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+  tbody.innerHTML += `<tr ondblclick="showDetail('${r.id}')">
+    <td style="font-family:monospace;font-size:12px">${r.id}</td>
+    <td>${channelTag}</td>
+    <td>${r.payerBank}</td>
+    <td>${maskAccount(r.payerAccount)}</td>
+    <td>${r.payerName}</td>
+    <td>${r.payeeBank}</td>
+    <td>${maskAccount(r.payeeAccount)}</td>
+    <td>${maskName(r.payeeName)}</td>
+    <td>${formatAmount(r.amount)}</td>
+    <td><span class="tag tag-${s.cls}">${s.label}</span></td>
+  </tr>`;
+});
+
+function showDetail(id) {
+  const r = data.find(d => d.id === id);
+  if (!r) return;
+  const s = statusMap[r.status] || { label: r.status, cls:'gray' };
+  const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+
+  let timelineHtml = r.timeline.map(t => {
+    const dotCls = t.to.includes('FAILED') ? 'error' : t.to === 'COMPLETED' || t.to === 'PAYMENT_SUCCESS' ? 'success' : '';
+    return `<div class="timeline-item">
+      <div class="timeline-dot ${dotCls}"></div>
+      <div class="timeline-content">
+        <div class="timeline-time">${t.time}</div>
+        <div class="timeline-text">${statusMap[t.from]?.label || t.from} → ${statusMap[t.to]?.label || t.to}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-section-title">基本信息</div>
+    <div class="detail-grid">
+      <div class="detail-label">交易ID</div><div class="detail-value" style="font-family:monospace">${r.id}</div>
+      <div class="detail-label">上游消息ID</div><div class="detail-value" style="font-family:monospace">${r.sourceMsgId}</div>
+      <div class="detail-label">渠道</div><div class="detail-value">${channelTag}</div>
+      <div class="detail-label">状态</div>
+      <div class="detail-value">
+        <span class="tag tag-${s.cls}" style="margin-bottom:4px">${s.label}</span>
+        ${buildStatusFlow(r.status)}
+      </div>
+      <div class="detail-label">下游参考号</div><div class="detail-value" style="font-family:monospace">${r.downstreamRef || '-'}</div>
+      ${r.errorCode ? `<div class="detail-label">错误码</div><div class="detail-value" style="color:var(--error)">${r.errorCode}</div>` : ''}
+      ${r.errorMessage ? `<div class="detail-label">错误信息</div><div class="detail-value" style="color:var(--error)">${r.errorMessage}</div>` : ''}
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">付款信息</div>
+      <div class="detail-grid">
+        <div class="detail-label">付款行行号</div><div class="detail-value" style="font-family:monospace">${r.payerBankCode}</div>
+        <div class="detail-label">付款行名称</div><div class="detail-value">${r.payerBank}</div>
+        <div class="detail-label">付款账号</div><div class="detail-value">${r.payerAccount}</div>
+        <div class="detail-label">付款账户名</div><div class="detail-value">${r.payerName}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">收款信息</div>
+      <div class="detail-grid">
+        <div class="detail-label">收款行行号</div><div class="detail-value" style="font-family:monospace">${r.payeeBankCode}</div>
+        <div class="detail-label">收款行名称</div><div class="detail-value">${r.payeeBank}</div>
+        <div class="detail-label">收款账号</div><div class="detail-value">${r.payeeAccount}</div>
+        <div class="detail-label">收款账户名</div><div class="detail-value">${r.payeeName}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">金额信息</div>
+      <div class="detail-grid">
+        <div class="detail-label">金额</div><div class="detail-value">${formatAmount(r.amount)} CNY</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">状态变更记录</div>
+      <div class="timeline">${timelineHtml}</div>
+    </div>`;
+  openModal('detailModal');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 付款账号配置</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">付款账号配置</div>
+        <button class="btn btn-primary" onclick="openModal('addModal')">+ 新增</button>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">渠道</span>
+          <select class="form-select"><option>全部</option><option>CNAPS</option><option>CIPS</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">支付通道</span>
+          <select class="form-select"><option>全部</option><option>CNAPS</option><option>CIPS</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">状态</span>
+          <select class="form-select"><option>全部</option><option>有效</option><option>停用</option></select>
+        </div>
+        <button class="btn btn-primary">查询</button>
+        <button class="btn">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>序号</th><th>渠道</th><th>付款行行号</th><th>付款行名称</th><th>付款账号</th><th>付款户名</th><th>支付通道</th><th>授权状态</th><th>操作</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span>共 4 条</span>
+          <div class="pagination-pages"><div class="page-btn active">1</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">付款账号配置详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+  </div>
+</div>
+
+<div id="addModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">新增付款账号配置</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-label required">渠道</div>
+        <select class="form-select"><option value="">请选择</option><option>CNAPS</option><option>CIPS</option></select>
+        <div class="form-label required">付款行行号</div>
+        <input class="form-input" placeholder="请输入付款行行号">
+        <div class="form-label required">付款行名称</div>
+        <input class="form-input" placeholder="请输入付款行名称">
+        <div class="form-label required">付款账号</div>
+        <input class="form-input" placeholder="请输入付款账号">
+        <div class="form-label required">付款户名</div>
+        <input class="form-input" placeholder="请输入付款户名">
+        <div class="form-label required">支付通道</div>
+        <select class="form-select"><option value="">请选择</option><option>CNAPS</option><option>CIPS</option></select>
+        <div class="form-label">备注</div>
+        <input class="form-input" placeholder="请输入备注">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('addModal')">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<div id="authModal" class="modal-overlay">
+  <div class="modal" style="width:440px">
+    <div class="modal-header">
+      <div class="modal-title">发起授权</div>
+      <button class="modal-close" onclick="closeModal('authModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-body">
+        <div class="confirm-icon">🔐</div>
+        <div class="confirm-text">确认对该付款账号发起授权？</div>
+        <div class="confirm-sub">授权后系统将向下游支付系统声明对该账号的付款权限</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('authModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('authModal')">确认授权</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('payer-config');
+initHeader([{text:'映射管理',href:'#'},{text:'付款配置'}]);
+
+const data = [
+  { id:1, channel:'CNAPS', bankCode:'102100099996', bankName:'中国工商银行北京市分行', accountNo:'0200003609000123456', accountName:'某某科技有限公司', payChannel:'CNAPS', authorized:true, status:'有效' },
+  { id:2, channel:'CIPS', bankCode:'CIBKCNBJXXX', bankName:'兴业银行股份有限公司', accountNo:'0200003609000789012', accountName:'某某科技有限公司', payChannel:'CIPS', authorized:true, status:'有效' },
+  { id:3, channel:'CIPS', bankCode:'CMBCCNBSXXX', bankName:'招商银行股份有限公司', accountNo:'0200003609000567890', accountName:'某某科技有限公司', payChannel:'CIPS', authorized:false, status:'有效' },
+  { id:4, channel:'CNAPS', bankCode:'105100000017', bankName:'中国建设银行北京市分行', accountNo:'0200003609000345678', accountName:'某某科技有限公司', payChannel:'CNAPS', authorized:false, status:'停用' },
+];
+
+const tbody = document.getElementById('tableBody');
+data.forEach(r => {
+  const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+  const payChannelTag = r.payChannel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+  const authTag = r.authorized
+    ? '<span class="tag tag-green">✅ 已授权</span>'
+    : '<span class="tag tag-orange">❌ 未授权</span>';
+  const authBtn = !r.authorized ? `<button class="btn-link btn-sm" onclick="event.stopPropagation();openModal('authModal')">发起授权</button>` : '';
+  tbody.innerHTML += `<tr ondblclick="showDetail(${r.id})">
+    <td>${r.id}</td>
+    <td>${channelTag}</td>
+    <td style="font-family:monospace">${r.bankCode}</td>
+    <td>${r.bankName}</td>
+    <td>${maskAccount(r.accountNo)}</td>
+    <td>${r.accountName}</td>
+    <td>${payChannelTag}</td>
+    <td>${authTag}</td>
+    <td>
+      <button class="btn-link btn-sm" onclick="event.stopPropagation();showDetail(${r.id})">详情</button>
+      <button class="btn-link btn-sm" onclick="event.stopPropagation();openModal('addModal')">编辑</button>
+      ${authBtn}
+    </td>
+  </tr>`;
+});
+
+function showDetail(id) {
+  const r = data.find(d => d.id === id);
+  if (!r) return;
+  const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+  const payChannelTag = r.payChannel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-label">渠道</div><div class="detail-value">${channelTag}</div>
+      <div class="detail-label">付款行行号</div><div class="detail-value" style="font-family:monospace">${r.bankCode}</div>
+      <div class="detail-label">付款行名称</div><div class="detail-value">${r.bankName}</div>
+      <div class="detail-label">付款账号</div><div class="detail-value">${r.accountNo}</div>
+      <div class="detail-label">付款户名</div><div class="detail-value">${r.accountName}</div>
+      <div class="detail-label">支付通道</div><div class="detail-value">${payChannelTag}</div>
+      <div class="detail-label">授权状态</div><div class="detail-value">${r.authorized?'已授权':'未授权'}</div>
+      <div class="detail-label">状态</div><div class="detail-value">${r.status}</div>
+    </div>`;
+  openModal('detailModal');
+}
+</script>
+</body>
+</html>

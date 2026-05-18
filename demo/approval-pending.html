@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 审批查询</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">审批查询</div>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">业务类型</span>
+          <select class="form-select"><option>全部</option><option>账号映射</option><option>行号映射</option><option>付款配置</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">制单人</span>
+          <input class="form-input" placeholder="请输入制单人">
+        </div>
+        <button class="btn btn-primary">查询</button>
+        <button class="btn">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>序号</th><th>审批单号</th><th>业务类型</th><th>操作类型</th><th>制单人</th><th>制单时间</th><th>操作</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span>共 3 条</span>
+          <div class="pagination-pages"><div class="page-btn active">1</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal" style="width:660px">
+    <div class="modal-header">
+      <div class="modal-title">审批详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn" style="color:var(--error);border-color:var(--error)" onclick="openModal('rejectModal')">拒绝</button>
+      <button class="btn btn-primary" onclick="openModal('approveModal')">通过</button>
+    </div>
+  </div>
+</div>
+
+<div id="approveModal" class="modal-overlay">
+  <div class="modal" style="width:440px">
+    <div class="modal-header">
+      <div class="modal-title">审批确认</div>
+      <button class="modal-close" onclick="closeModal('approveModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-body">
+        <div class="confirm-icon">✅</div>
+        <div class="confirm-text">确认通过该审批？</div>
+        <div class="confirm-sub">通过后变更将立即生效</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('approveModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeAllModals()">确认通过</button>
+    </div>
+  </div>
+</div>
+
+<div id="rejectModal" class="modal-overlay">
+  <div class="modal" style="width:440px">
+    <div class="modal-header">
+      <div class="modal-title">拒绝审批</div>
+      <button class="modal-close" onclick="closeModal('rejectModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-label required">拒绝原因</div>
+        <textarea class="form-input" style="height:80px;resize:vertical" placeholder="请输入拒绝原因"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('rejectModal')">取消</button>
+      <button class="btn" style="background:var(--error);border-color:var(--error);color:#fff" onclick="closeAllModals()">确认拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('approval-query');
+initHeader([{text:'映射管理',href:'#'},{text:'审批查询'}]);
+
+const data = [
+  { id:1, approvalId:'APR-20260518-001', bizType:'账号映射', bizTypeCode:'ACCOUNT_MAPPING', opType:'新增', maker:'user001', makerTime:'2026-05-18 10:00:00',
+    detail: { accountNo:'6225880999900001', accountName:'陈九', currency:'CNY', accountType:'外部', remark:'新增测试' }},
+  { id:2, approvalId:'APR-20260518-002', bizType:'行号映射', bizTypeCode:'BANK_MAPPING', opType:'修改', maker:'user001', makerTime:'2026-05-18 10:05:00',
+    detail: { bankCode:'102100099996', beforeName:'中国工商银行北京分行', afterName:'中国工商银行北京市分行', codeType:'CNAPS' }},
+  { id:3, approvalId:'APR-20260518-003', bizType:'付款配置', bizTypeCode:'PAYER_CONFIG', opType:'新增', maker:'user002', makerTime:'2026-05-18 10:10:00',
+    detail: { channel:'CIPS', bankCode:'CMBCCNBSXXX', bankName:'招商银行股份有限公司', accountNo:'0200003609000567890', accountName:'某某科技有限公司', currency:'EUR' }},
+];
+
+const tbody = document.getElementById('tableBody');
+data.forEach(r => {
+  const bizTag = r.bizTypeCode === 'ACCOUNT_MAPPING' ? 'tag-blue' : r.bizTypeCode === 'BANK_MAPPING' ? 'tag-purple' : 'tag-orange';
+  const opTag = r.opType === '新增' ? 'tag-green' : r.opType === '修改' ? 'tag-blue' : 'tag-red';
+  tbody.innerHTML += `<tr ondblclick="showDetail(${r.id})">
+    <td>${r.id}</td>
+    <td style="font-family:monospace">${r.approvalId}</td>
+    <td><span class="tag ${bizTag}">${r.bizType}</span></td>
+    <td><span class="tag ${opTag}">${r.opType}</span></td>
+    <td>${r.maker}</td>
+    <td>${r.makerTime}</td>
+    <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail(${r.id})">审批</button></td>
+  </tr>`;
+});
+
+function showDetail(id) {
+  const r = data.find(d => d.id === id);
+  if (!r) return;
+  let detailHtml = '';
+  const d = r.detail;
+  if (r.bizTypeCode === 'ACCOUNT_MAPPING') {
+    detailHtml = `
+      <div class="detail-grid">
+        <div class="detail-label">收款账号</div><div class="detail-value">${d.accountNo}</div>
+        <div class="detail-label">账户名称</div><div class="detail-value">${d.accountName}</div>
+        <div class="detail-label">币种</div><div class="detail-value">${d.currency}</div>
+        <div class="detail-label">账户类型</div><div class="detail-value">${d.accountType}</div>
+        <div class="detail-label">备注</div><div class="detail-value">${d.remark || '-'}</div>
+      </div>`;
+  } else if (r.bizTypeCode === 'BANK_MAPPING') {
+    detailHtml = `
+      <div class="detail-grid">
+        <div class="detail-label">行号</div><div class="detail-value" style="font-family:monospace">${d.bankCode}</div>
+        <div class="detail-label">类型</div><div class="detail-value">${d.codeType}</div>
+        <div class="detail-label">原行名</div><div class="detail-value" style="text-decoration:line-through;color:var(--error)">${d.beforeName}</div>
+        <div class="detail-label">新行名</div><div class="detail-value" style="color:var(--success)">${d.afterName}</div>
+      </div>`;
+  } else {
+    detailHtml = `
+      <div class="detail-grid">
+        <div class="detail-label">渠道</div><div class="detail-value">${d.channel}</div>
+        <div class="detail-label">付款行行号</div><div class="detail-value" style="font-family:monospace">${d.bankCode}</div>
+        <div class="detail-label">付款行名称</div><div class="detail-value">${d.bankName}</div>
+        <div class="detail-label">付款账号</div><div class="detail-value">${d.accountNo}</div>
+        <div class="detail-label">付款户名</div><div class="detail-value">${d.accountName}</div>
+        <div class="detail-label">币种</div><div class="detail-value">${d.currency}</div>
+      </div>`;
+  }
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-label">审批单号</div><div class="detail-value" style="font-family:monospace">${r.approvalId}</div>
+      <div class="detail-label">业务类型</div><div class="detail-value">${r.bizType}</div>
+      <div class="detail-label">操作类型</div><div class="detail-value">${r.opType}</div>
+      <div class="detail-label">制单人</div><div class="detail-value">${r.maker}</div>
+      <div class="detail-label">制单时间</div><div class="detail-value">${r.makerTime}</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">变更内容</div>
+      ${detailHtml}
+    </div>`;
+  openModal('detailModal');
+}
+</script>
+</body>
+</html>
