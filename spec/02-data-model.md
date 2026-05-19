@@ -126,50 +126,91 @@
 
 **交易状态机：**
 
+支付指令状态根据渠道类型分为两条流转路径：
+
+#### CNAPS 通道状态流
+
 ```
-RECEIVED          消息已接收
+GCMS                    消息已接收
     │
     ▼
-ENRICHING         要素补齐中
-    │
-    ├─(补齐失败)──→ ENRICHMENT_FAILED
+VALIDATING              要素校验中
     │
     ▼
-ENRICHED          要素补齐完成
+SENDING                 发送支付指令中
+    │
+    ├─(发送失败)──→ SEND_FAILED
     │
     ▼
-AUTHORIZING       授权中（如需）
+CITIFT_PENDING          CitiFT 处理中
     │
-    ├─(授权失败)──→ AUTH_FAILED
-    │
-    ▼
-AUTHORIZED        授权完成
+    ├─(300s超时)──→ CITIFT_PENDING_TIMEOUT
     │
     ▼
-SENDING           发送支付指令中
-    │
-    ├─(发送失败)──→ SEND_FAILED ──→ (重试) ──→ SENDING
+CITIFT_SUCC             CitiFT 处理成功
     │
     ▼
-SENT              支付指令已发送
+LCP_PENDING             LCP 清算中
+    │
+    ├─(300s超时)──→ LCP_PENDING_TIMEOUT
     │
     ▼
-POLLING           状态轮询中
-    │
-    ├─(支付失败)──→ PAYMENT_FAILED
-    ├─(轮询超时)──→ STATUS_UNKNOWN
-    │
-    ▼
-PAYMENT_SUCCESS   支付成功
-    │
-    ▼
-CONFIRMING        动账确认中
-    │
-    ├─(动账不一致)──→ CONFIRM_MISMATCH
-    │
-    ▼
-COMPLETED         交易完成
+LCP_CLEARED             LCP 清算完成（终态）
 ```
+
+#### CIPS 通道状态流
+
+```
+GCMS                    消息已接收
+    │
+    ▼
+VALIDATING              要素校验中
+    │
+    ▼
+SENDING                 发送支付指令中
+    │
+    ├─(发送失败)──→ SEND_FAILED
+    │
+    ▼
+CITIFT_PENDING          CitiFT 处理中
+    │
+    ├─(300s超时)──→ CITIFT_PENDING_TIMEOUT
+    │
+    ▼
+CITIFT_SUCC             CitiFT 处理成功
+    │
+    ▼
+CIPS_PENDING            CIPS 清算中
+    │
+    ├─(300s超时)──→ CIPS_PENDING_TIMEOUT
+    │
+    ▼
+CIPS_CLEARED            CIPS 清算完成（终态）
+```
+
+#### 状态编码对照表
+
+| 状态编码 | 显示名称 | 适用通道 | 类型 |
+|----------|----------|----------|------|
+| GCMS | GCMS | 通用 | 初始 |
+| VALIDATING | Validating | 通用 | 处理中 |
+| SENDING | Sending | 通用 | 处理中 |
+| SEND_FAILED | Send Failed | 通用 | 异常终态 |
+| CITIFT_PENDING | CitiFT Pending | 通用 | 处理中 |
+| CITIFT_PENDING_TIMEOUT | CitiFT Pending (timeout) | 通用 | 异常终态 |
+| CITIFT_SUCC | CitiFT Succ | 通用 | 处理中 |
+| LCP_PENDING | LCP Pending | CNAPS | 处理中 |
+| LCP_PENDING_TIMEOUT | LCP Pending (timeout) | CNAPS | 异常终态 |
+| LCP_CLEARED | LCP Cleared | CNAPS | 正常终态 |
+| CIPS_PENDING | CIPS Pending | CIPS | 处理中 |
+| CIPS_PENDING_TIMEOUT | CIPS Pending (timeout) | CIPS | 异常终态 |
+| CIPS_CLEARED | CIPS Cleared | CIPS | 正常终态 |
+
+#### 超时机制
+
+- 每个 Pending 状态（CitiFT Pending / LCP Pending / CIPS Pending）均设置 300 秒超时
+- 超时后自动跳转至对应的 Pending (timeout) 状态
+- 超时状态为异常终态，需人工介入处理
 
 ### 3.2 支付状态跟踪表 (MSTP_PAYMENT_STATUS_LOG)
 

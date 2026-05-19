@@ -200,11 +200,14 @@ MSTP 作为客户端调用下游支付结算系统的 RESTful API，完成支付
 | 参数 | 值 | 说明 |
 |------|-----|------|
 | 初始间隔 | 5s | 支付发送后首次查询间隔 |
-| 最大间隔 | 60s | 轮询间隔上限 |
+| 最大间隔 | 30s | 轮询间隔上限 |
 | 间隔递增 | 1.5倍 | 每次查询后间隔递增 |
-| 最大轮询次数 | 30次 | 超过后标记为 STATUS_UNKNOWN |
-| 最大轮询时长 | 30分钟 | 超过后标记为 STATUS_UNKNOWN |
-| 轮询条件 | status = PROCESSING | 仅处理中状态继续轮询 |
+| Pending 超时 | 300s | 每个 Pending 状态超过 300s 自动标记为 timeout |
+| 轮询条件 | status 含 PENDING | 仅 Pending 状态继续轮询 |
+
+轮询逻辑根据渠道类型区分：
+- **CNAPS**：轮询至 CitiFT Succ → LCP Pending → LCP Cleared，任一阶段 300s 超时则跳转 timeout
+- **CIPS**：轮询至 CitiFT Succ → CIPS Pending → CIPS Cleared，任一阶段 300s 超时则跳转 timeout
 
 ## 5. 动账通知接口
 
