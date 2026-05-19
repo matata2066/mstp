@@ -1,39 +1,32 @@
 -- ============================================================================
--- MSTP Initial Data
+-- MSTP_SYS_CONFIG 系统配置表
 -- ============================================================================
 
--- ----------------------------------------------------------------------------
--- 1. 初始角色
--- ----------------------------------------------------------------------------
-INSERT INTO MSTP.MSTP_ROLE (ID, ROLE_CODE, ROLE_NAME, DESCRIPTION, SOURCE, IS_DELETED, CREATED_BY, CREATED_TIME, UPDATED_BY, UPDATED_TIME)
-VALUES (MSTP.SEQ_ROLE.NEXTVAL, 'MAKER', '制单人', '可新增/编辑映射记录，查询数据', 'LOCAL', 0, 'SYSTEM', SYSTIMESTAMP, 'SYSTEM', SYSTIMESTAMP);
+CREATE TABLE MSTP.MSTP_SYS_CONFIG (
+    ID              NUMBER(20)      NOT NULL,
+    CONFIG_KEY      VARCHAR2(100)   NOT NULL,
+    CONFIG_VALUE    VARCHAR2(500)   NOT NULL,
+    CONFIG_GROUP    VARCHAR2(50)    NOT NULL,
+    DESCRIPTION     VARCHAR2(200),
+    IS_DELETED      NUMBER(1)       DEFAULT 0 NOT NULL,
+    CREATED_BY      VARCHAR2(50)    NOT NULL,
+    CREATED_TIME    TIMESTAMP(6)    DEFAULT SYSTIMESTAMP NOT NULL,
+    UPDATED_BY      VARCHAR2(50)    NOT NULL,
+    UPDATED_TIME    TIMESTAMP(6)    DEFAULT SYSTIMESTAMP NOT NULL,
+    CONSTRAINT PK_SYS_CONFIG PRIMARY KEY (ID),
+    CONSTRAINT CK_SC_DELETED CHECK (IS_DELETED IN (0, 1))
+);
 
-INSERT INTO MSTP.MSTP_ROLE (ID, ROLE_CODE, ROLE_NAME, DESCRIPTION, SOURCE, IS_DELETED, CREATED_BY, CREATED_TIME, UPDATED_BY, UPDATED_TIME)
-VALUES (MSTP.SEQ_ROLE.NEXTVAL, 'CHECKER', '审核人', '可审批映射记录，查询数据', 'LOCAL', 0, 'SYSTEM', SYSTIMESTAMP, 'SYSTEM', SYSTIMESTAMP);
+CREATE UNIQUE INDEX MSTP.UK_CONFIG_KEY ON MSTP.MSTP_SYS_CONFIG (CONFIG_KEY, IS_DELETED);
 
-INSERT INTO MSTP.MSTP_ROLE (ID, ROLE_CODE, ROLE_NAME, DESCRIPTION, SOURCE, IS_DELETED, CREATED_BY, CREATED_TIME, UPDATED_BY, UPDATED_TIME)
-VALUES (MSTP.SEQ_ROLE.NEXTVAL, 'ADMIN', '管理员', '拥有所有权限', 'LOCAL', 0, 'SYSTEM', SYSTIMESTAMP, 'SYSTEM', SYSTIMESTAMP);
+COMMENT ON TABLE  MSTP.MSTP_SYS_CONFIG IS '系统配置表';
+COMMENT ON COLUMN MSTP.MSTP_SYS_CONFIG.CONFIG_KEY IS '配置键';
+COMMENT ON COLUMN MSTP.MSTP_SYS_CONFIG.CONFIG_VALUE IS '配置值';
+COMMENT ON COLUMN MSTP.MSTP_SYS_CONFIG.CONFIG_GROUP IS '配置分组';
 
-INSERT INTO MSTP.MSTP_ROLE (ID, ROLE_CODE, ROLE_NAME, DESCRIPTION, SOURCE, IS_DELETED, CREATED_BY, CREATED_TIME, UPDATED_BY, UPDATED_TIME)
-VALUES (MSTP.SEQ_ROLE.NEXTVAL, 'VIEWER', '观察者', '仅查询权限', 'LOCAL', 0, 'SYSTEM', SYSTIMESTAMP, 'SYSTEM', SYSTIMESTAMP);
-
--- ----------------------------------------------------------------------------
--- 2. 初始管理员用户 (密码: Admin@2026)
--- ----------------------------------------------------------------------------
-INSERT INTO MSTP.MSTP_USER (ID, USER_ID, USER_NAME, EMAIL, STATUS, PASSWORD_HASH, IS_DELETED, CREATED_BY, CREATED_TIME, UPDATED_BY, UPDATED_TIME)
-VALUES (MSTP.SEQ_USER.NEXTVAL, 'admin', '系统管理员', 'admin@mstp.local', 'ACTIVE',
-        '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
-        0, 'SYSTEM', SYSTIMESTAMP, 'SYSTEM', SYSTIMESTAMP);
-
--- ----------------------------------------------------------------------------
--- 3. 初始用户角色关联
--- ----------------------------------------------------------------------------
-INSERT INTO MSTP.MSTP_USER_ROLE (ID, USER_ID, ROLE_CODE, CREATED_BY, CREATED_TIME)
-VALUES (MSTP.SEQ_USER_ROLE.NEXTVAL, 'admin', 'ADMIN', 'SYSTEM', SYSTIMESTAMP);
-
--- ----------------------------------------------------------------------------
--- 4. 初始系统配置
--- ----------------------------------------------------------------------------
+-- ============================================================================
+-- Initial Data
+-- ============================================================================
 INSERT INTO MSTP.MSTP_SYS_CONFIG (ID, CONFIG_KEY, CONFIG_VALUE, CONFIG_GROUP, DESCRIPTION, IS_DELETED, CREATED_BY, CREATED_TIME, UPDATED_BY, UPDATED_TIME)
 VALUES (MSTP.SEQ_SYS_CONFIG.NEXTVAL, 'solace.host', 'tcp://localhost:55555', 'SOLACE', 'Solace Broker地址', 0, 'SYSTEM', SYSTIMESTAMP, 'SYSTEM', SYSTIMESTAMP);
 

@@ -1,6 +1,5 @@
 -- ============================================================================
 -- MSTP Sequences
--- All tables use Oracle Sequence for PK generation
 -- ============================================================================
 
 CREATE SEQUENCE MSTP.SEQ_ACCOUNT_MAPPING   START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
