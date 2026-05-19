@@ -136,6 +136,8 @@ GCMS                    消息已接收
     ▼
 VALIDATING              要素校验中
     │
+    ├─(校验失败)──→ VALIDATING_FAILED  ──(重试)──→ VALIDATING
+    │
     ▼
 SENDING                 发送支付指令中
     │
@@ -166,6 +168,8 @@ GCMS                    消息已接收
     ▼
 VALIDATING              要素校验中
     │
+    ├─(校验失败)──→ VALIDATING_FAILED  ──(重试)──→ VALIDATING
+    │
     ▼
 SENDING                 发送支付指令中
     │
@@ -194,6 +198,7 @@ CIPS_CLEARED            CIPS 清算完成（终态）
 |----------|----------|----------|------|
 | GCMS | GCMS | 通用 | 初始 |
 | VALIDATING | Validating | 通用 | 处理中 |
+| VALIDATING_FAILED | Validating Failed | 通用 | 异常终态（可重试） |
 | SENDING | Sending | 通用 | 处理中 |
 | SEND_FAILED | Send Failed | 通用 | 异常终态 |
 | CITIFT_PENDING | CitiFT Pending | 通用 | 处理中 |
@@ -211,6 +216,14 @@ CIPS_CLEARED            CIPS 清算完成（终态）
 - 每个 Pending 状态（CitiFT Pending / LCP Pending / CIPS Pending）均设置 300 秒超时
 - 超时后自动跳转至对应的 Pending (timeout) 状态
 - 超时状态为异常终态，需人工介入处理
+
+#### 重试机制（VALIDATING_FAILED）
+
+- 当要素校验失败时，交易状态进入 `VALIDATING_FAILED`
+- `VALIDATING_FAILED` 为可重试的异常终态，用户可在 UI 上点击「重试」按钮
+- 重试操作将状态重置为 `VALIDATING`，系统重新执行要素校验流程
+- 每次重试会递增 `RETRY_COUNT` 字段，并记录状态变更日志
+- 重试适用于以下场景：映射表数据补录后重新校验、临时性系统故障恢复后重试
 
 ### 3.2 支付状态跟踪表 (MSTP_PAYMENT_STATUS_LOG)
 

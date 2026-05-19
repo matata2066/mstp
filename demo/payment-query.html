@@ -59,6 +59,22 @@
       font-size: 10px;
       margin-right: 4px;
     }
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      border: 1px solid var(--warning);
+      background: #fff7e6;
+      color: var(--warning);
+      transition: all 0.2s;
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+    .retry-btn:hover { background: #ffd591; border-color: var(--warning); }
   </style>
 </head>
 <body>
@@ -86,7 +102,7 @@
         </div>
         <div class="form-item">
           <span class="form-label">状态</span>
-          <select class="form-select"><option>全部</option><option>GCMS</option><option>Validating</option><option>Sending</option><option>CitiFT Pending</option><option>CitiFT Succ</option><option>LCP Pending</option><option>LCP Cleared</option><option>CIPS Pending</option><option>CIPS Cleared</option><option>Timeout</option></select>
+          <select class="form-select"><option>全部</option><option>GCMS</option><option>Validating</option><option>Sending</option><option>CitiFT Pending</option><option>CitiFT Succ</option><option>LCP Pending</option><option>LCP Cleared</option><option>CIPS Pending</option><option>CIPS Cleared</option><option>Timeout</option><option>Failed</option></select>
         </div>
         <button class="btn btn-primary">查询</button>
         <button class="btn">重置</button>
@@ -102,7 +118,7 @@
           </table>
         </div>
         <div class="pagination">
-          <span>共 8 条</span>
+          <span>共 9 条</span>
           <div class="pagination-pages">
             <div class="page-btn active">1</div>
           </div>
@@ -119,7 +135,29 @@
       <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
     </div>
     <div class="modal-body" id="detailBody"></div>
-    <div class="modal-footer"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+    <div class="modal-footer" id="detailFooter">
+      <button class="btn" onclick="closeModal('detailModal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="retryConfirm" class="modal-overlay">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <div class="modal-title">确认重试</div>
+      <button class="modal-close" onclick="closeModal('retryConfirm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-body">
+        <div class="confirm-icon">🔄</div>
+        <div class="confirm-text">确认重新从 Validating 开始处理？</div>
+        <div class="confirm-sub">系统将重置状态并重新执行要素校验流程</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('retryConfirm')">取消</button>
+      <button class="btn btn-primary" onclick="doRetry()">确认重试</button>
+    </div>
   </div>
 </div>
 
@@ -129,19 +167,20 @@ initSidebar('payment-query');
 initHeader([{text:'交易查询',href:'#'},{text:'支付指令'}]);
 
 const statusMap = {
-  'GCMS':                { label:'GCMS',              cls:'gray' },
-  'VALIDATING':          { label:'Validating',         cls:'gray' },
-  'SENDING':             { label:'Sending',            cls:'blue' },
-  'CITIFT_PENDING':      { label:'CitiFT Pending',     cls:'blue' },
-  'CITIFT_SUCC':         { label:'CitiFT Succ',        cls:'green' },
-  'LCP_PENDING':         { label:'LCP Pending',        cls:'blue' },
-  'LCP_CLEARED':         { label:'LCP Cleared',        cls:'green' },
-  'CIPS_PENDING':        { label:'CIPS Pending',       cls:'blue' },
-  'CIPS_CLEARED':        { label:'CIPS Cleared',       cls:'green' },
-  'CITIFT_PENDING_TIMEOUT':  { label:'CitiFT Pending (timeout)',  cls:'orange' },
-  'LCP_PENDING_TIMEOUT':     { label:'LCP Pending (timeout)',     cls:'orange' },
-  'CIPS_PENDING_TIMEOUT':    { label:'CIPS Pending (timeout)',    cls:'orange' },
-  'SEND_FAILED':         { label:'Send Failed',        cls:'red' },
+  'GCMS':                  { label:'GCMS',                cls:'gray' },
+  'VALIDATING':            { label:'Validating',           cls:'gray' },
+  'VALIDATING_FAILED':     { label:'Validating Failed',    cls:'red' },
+  'SENDING':               { label:'Sending',              cls:'blue' },
+  'CITIFT_PENDING':         { label:'CitiFT Pending',       cls:'blue' },
+  'CITIFT_SUCC':            { label:'CitiFT Succ',          cls:'green' },
+  'LCP_PENDING':            { label:'LCP Pending',           cls:'blue' },
+  'LCP_CLEARED':            { label:'LCP Cleared',           cls:'green' },
+  'CIPS_PENDING':           { label:'CIPS Pending',          cls:'blue' },
+  'CIPS_CLEARED':           { label:'CIPS Cleared',          cls:'green' },
+  'CITIFT_PENDING_TIMEOUT': { label:'CitiFT Pending (timeout)',cls:'orange' },
+  'LCP_PENDING_TIMEOUT':    { label:'LCP Pending (timeout)',   cls:'orange' },
+  'CIPS_PENDING_TIMEOUT':   { label:'CIPS Pending (timeout)',  cls:'orange' },
+  'SEND_FAILED':            { label:'Send Failed',           cls:'red' },
 };
 
 const cnapsSequence = ['GCMS','VALIDATING','SENDING','CITIFT_PENDING','CITIFT_SUCC','LCP_PENDING','LCP_CLEARED'];
@@ -153,6 +192,8 @@ const timeoutBranches = {
   'CIPS_PENDING_TIMEOUT':   'CIPS_PENDING',
 };
 
+let currentRetryTxnId = null;
+
 function getSequence(channel) {
   return channel === 'CNAPS' ? cnapsSequence : cipsSequence;
 }
@@ -161,13 +202,15 @@ function buildStatusFlow(currentStatus, channel) {
   const seq = getSequence(channel);
   const s = statusMap[currentStatus] || { label: currentStatus, cls:'gray' };
   const timeoutFrom = timeoutBranches[currentStatus];
+  const isValidateFailed = currentStatus === 'VALIDATING_FAILED';
 
   let reachedSet = new Set();
-  if (!timeoutFrom && currentStatus !== 'SEND_FAILED') {
+  if (!timeoutFrom && !isValidateFailed && currentStatus !== 'SEND_FAILED') {
     const idx = seq.indexOf(currentStatus);
     if (idx >= 0) for (let i = 0; i <= idx; i++) reachedSet.add(seq[i]);
-  } else if (timeoutFrom) {
-    const idx = seq.indexOf(timeoutFrom);
+  } else if (timeoutFrom || isValidateFailed) {
+    const from = timeoutFrom || 'VALIDATING';
+    const idx = seq.indexOf(from);
     if (idx >= 0) for (let i = 0; i <= idx; i++) reachedSet.add(seq[i]);
     reachedSet.add(currentStatus);
   } else {
@@ -197,9 +240,9 @@ function buildStatusFlow(currentStatus, channel) {
       html += `<span class="status-node">${stInfo.label}</span>`;
     }
 
-    if (timeoutFrom === st) {
+    if ((timeoutFrom || isValidateFailed) && st === (timeoutFrom || 'VALIDATING')) {
       html += `<span class="status-arrow reached" style="transform:rotate(90deg);margin:0 2px">▸</span>`;
-      html += `<span class="status-node current cls-orange">${statusMap[currentStatus].label}</span>`;
+      html += `<span class="status-node current ${isValidateFailed?'cls-red':'cls-orange'}">${statusMap[currentStatus].label}</span>`;
     }
   });
   html += '</div>';
@@ -278,6 +321,11 @@ const data = [
       { time:'09:00:16', from:'CITIFT_SUCC', to:'CIPS_PENDING' },
       { time:'09:05:16', from:'CIPS_PENDING', to:'CIPS_PENDING_TIMEOUT' },
     ]},
+  { id:'MSTP-20260518-0009', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'招商银行北京分行', payeeBankCode:'308584000013', payeeAccount:'6214830123456789', payeeName:'吴九', amount:35000.00, status:'VALIDATING_FAILED', downstreamRef:'', sourceMsgId:'MSG-20260518-000009', errorCode:'ENRICHMENT_FAIL', errorMessage:'收款账号映射未找到，请检查映射表配置',
+    timeline: [
+      { time:'14:00:00', from:'GCMS', to:'VALIDATING' },
+      { time:'14:00:05', from:'VALIDATING', to:'VALIDATING_FAILED' },
+    ]},
 ];
 
 const tbody = document.getElementById('tableBody');
@@ -306,7 +354,7 @@ function showDetail(id) {
 
   let timelineHtml = r.timeline.map(t => {
     const toInfo = statusMap[t.to] || { label: t.to, cls:'gray' };
-    const dotCls = t.to.includes('TIMEOUT') ? 'warning' : t.to.includes('CLEARED') || t.to === 'CITIFT_SUCC' ? 'success' : t.to === 'SEND_FAILED' ? 'error' : '';
+    const dotCls = t.to.includes('TIMEOUT') ? 'warning' : t.to.includes('CLEARED') || t.to === 'CITIFT_SUCC' ? 'success' : t.to === 'SEND_FAILED' || t.to.includes('_FAILED') ? 'error' : '';
     return `<div class="timeline-item">
       <div class="timeline-dot ${dotCls}"></div>
       <div class="timeline-content">
@@ -316,14 +364,20 @@ function showDetail(id) {
     </div>`;
   }).join('');
 
+  const retryBtnHtml = r.status === 'VALIDATING_FAILED'
+    ? `<button class="retry-btn" onclick="openRetry('${r.id}')">🔄 重试</button>`
+    : '';
+
+  document.getElementById('detailFooter').innerHTML = `
+    <button class="btn" onclick="closeModal('detailModal')">关闭</button>${retryBtnHtml}`;
+
   document.getElementById('detailBody').innerHTML = `
     <div class="detail-section-title">基本信息</div>
     <div class="detail-grid">
       <div class="detail-label">交易ID</div><div class="detail-value" style="font-family:monospace">${r.id}</div>
       <div class="detail-label">上游消息ID</div><div class="detail-value" style="font-family:monospace">${r.sourceMsgId}</div>
       <div class="detail-label">渠道</div><div class="detail-value">${channelTag}</div>
-      <div class="detail-label">状态</div>
-      <div class="detail-value">
+      <div class="detail-label">状态</div><div class="detail-value">
         <span class="tag tag-${s.cls}" style="margin-bottom:4px">${s.label}</span>
         ${buildStatusFlow(r.status, r.channel)}
       </div>
@@ -360,6 +414,16 @@ function showDetail(id) {
       <div class="timeline">${timelineHtml}</div>
     </div>`;
   openModal('detailModal');
+}
+
+function openRetry(txnId) {
+  currentRetryTxnId = txnId;
+  openModal('retryConfirm');
+}
+
+function doRetry() {
+  closeModal('retryConfirm');
+  closeModal('detailModal');
 }
 </script>
 </body>
