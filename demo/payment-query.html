@@ -112,7 +112,7 @@
         <div class="table-wrapper">
           <table>
             <thead>
-              <tr><th>交易ID</th><th>渠道</th><th>付款行</th><th>付款账号</th><th>付款户名</th><th>收款行</th><th>收款账号</th><th>收款户名</th><th>金额</th><th>状态</th></tr>
+              <tr><th>交易ID</th><th>渠道</th><th>付款行</th><th>付款账号</th><th>付款户名</th><th>收款行</th><th>收款账号</th><th>收款户名</th><th>金额</th><th>记账日期</th><th></th>状态</th></tr>
             </thead>
             <tbody id="tableBody"></tbody>
           </table>
@@ -256,7 +256,7 @@ function buildStatusFlow(currentStatus, channel) {
 }
 
 const data = [
-  { id:'MSTP-20260518-0001', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'建设银行北京分行', payeeBankCode:'105100000017', payeeAccount:'6225880123456789', payeeName:'张三', amount:100000.00, status:'LCP_CLEARED', downstreamRef:'DS-20260518-123456', sourceMsgId:'MSG-20260518-000001',
+  { id:'MSTP-20260518-0001', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'建设银行北京分行', payeeBankCode:'105100000017', payeeAccount:'6225880123456789', payeeName:'张三', amount:100000.00, valueDate:'2026-05-19', status:'LCP_CLEARED', downstreamRef:'DS-20260518-123456', sourceMsgId:'MSG-20260518-000001',
     timeline: [
       { time:'10:30:00', from:'GCMS', to:'VALIDATING' },
       { time:'10:30:01', from:'VALIDATING', to:'SENDING' },
@@ -265,7 +265,7 @@ const data = [
       { time:'10:30:16', from:'CITIFT_SUCC', to:'LCP_PENDING' },
       { time:'10:32:15', from:'LCP_PENDING', to:'LCP_CLEARED' },
     ]},
-  { id:'MSTP-20260518-0002', channel:'CIPS', payerBank:'兴业银行', payerBankCode:'CIBKCNBJXXX', payerAccount:'0200003609000789012', payerName:'某某科技有限公司', payeeBank:'Citibank N.A.', payeeBankCode:'CITIUS33XXX', payeeAccount:'9876543210123456', payeeName:'John Smith', amount:50000.00, status:'CIPS_PENDING', downstreamRef:'DS-20260518-123457', sourceMsgId:'MSG-20260518-000002',
+  { id:'MSTP-20260518-0002', channel:'CIPS', payerBank:'兴业银行', payerBankCode:'CIBKCNBJXXX', payerAccount:'0200003609000789012', payerName:'某某科技有限公司', payeeBank:'Citibank N.A.', payeeBankCode:'CITIUS33XXX', payeeAccount:'9876543210123456', payeeName:'John Smith', amount:50000.00, valueDate:'2026-05-19', status:'CIPS_PENDING', downstreamRef:'DS-20260518-123457', sourceMsgId:'MSG-20260518-000002',
     timeline: [
       { time:'10:35:00', from:'GCMS', to:'VALIDATING' },
       { time:'10:35:01', from:'VALIDATING', to:'SENDING' },
@@ -273,7 +273,7 @@ const data = [
       { time:'10:35:15', from:'CITIFT_PENDING', to:'CITIFT_SUCC' },
       { time:'10:35:16', from:'CITIFT_SUCC', to:'CIPS_PENDING' },
     ]},
-  { id:'MSTP-20260518-0003', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'农业银行北京分行', payeeBankCode:'103100000026', payeeAccount:'6228480123450045', payeeName:'李四', amount:80000.00, status:'LCP_PENDING', downstreamRef:'DS-20260518-123458', sourceMsgId:'MSG-20260518-000003',
+  { id:'MSTP-20260518-0003', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'农业银行北京分行', payeeBankCode:'103100000026', payeeAccount:'6228480123450045', payeeName:'李四', amount:80000.00, valueDate:'2026-05-19', status:'LCP_PENDING', downstreamRef:'DS-20260518-123458', sourceMsgId:'MSG-20260518-000003',
     timeline: [
       { time:'10:40:00', from:'GCMS', to:'VALIDATING' },
       { time:'10:40:01', from:'VALIDATING', to:'SENDING' },
@@ -281,7 +281,7 @@ const data = [
       { time:'10:40:15', from:'CITIFT_PENDING', to:'CITIFT_SUCC' },
       { time:'10:40:16', from:'CITIFT_SUCC', to:'LCP_PENDING' },
     ]},
-  { id:'MSTP-20260518-0004', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'中国银行北京分行', payeeBankCode:'104100000004', payeeAccount:'6217880123450890', payeeName:'孙七', amount:250000.00, status:'LCP_CLEARED', downstreamRef:'DS-20260518-123459', sourceMsgId:'MSG-20260518-000004',
+  { id:'MSTP-20260518-0004', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'中国银行北京分行', payeeBankCode:'104100000004', payeeAccount:'6217880123450890', payeeName:'孙七', amount:250000.00, valueDate:'2026-05-19', status:'LCP_CLEARED', downstreamRef:'DS-20260518-123459', sourceMsgId:'MSG-20260518-000004',
     timeline: [
       { time:'09:15:00', from:'GCMS', to:'VALIDATING' },
       { time:'09:15:01', from:'VALIDATING', to:'SENDING' },
@@ -290,20 +290,20 @@ const data = [
       { time:'09:15:21', from:'CITIFT_SUCC', to:'LCP_PENDING' },
       { time:'09:17:20', from:'LCP_PENDING', to:'LCP_CLEARED' },
     ]},
-  { id:'MSTP-20260518-0005', channel:'CIPS', payerBank:'兴业银行', payerBankCode:'CIBKCNBJXXX', payerAccount:'0200003609000789012', payerName:'某某科技有限公司', payeeBank:'Deutsche Bank AG', payeeBankCode:'DEUTDEFFXXX', payeeAccount:'DE89370400440532013000', payeeName:'Hans Mueller', amount:30000.00, status:'CITIFT_PENDING', downstreamRef:'DS-20260518-123460', sourceMsgId:'MSG-20260518-000005',
+  { id:'MSTP-20260518-0005', channel:'CIPS', payerBank:'兴业银行', payerBankCode:'CIBKCNBJXXX', payerAccount:'0200003609000789012', payerName:'某某科技有限公司', payeeBank:'Deutsche Bank AG', payeeBankCode:'DEUTDEFFXXX', payeeAccount:'DE89370400440532013000', payeeName:'Hans Mueller', amount:30000.00, valueDate:'2026-05-19', status:'CITIFT_PENDING', downstreamRef:'DS-20260518-123460', sourceMsgId:'MSG-20260518-000005',
     timeline: [
       { time:'11:00:00', from:'GCMS', to:'VALIDATING' },
       { time:'11:00:01', from:'VALIDATING', to:'SENDING' },
       { time:'11:00:02', from:'SENDING', to:'CITIFT_PENDING' },
     ]},
-  { id:'MSTP-20260518-0006', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'交通银行北京分行', payeeBankCode:'301290000011', payeeAccount:'6226880123450567', payeeName:'赵六', amount:15000.00, status:'CITIFT_PENDING_TIMEOUT', downstreamRef:'', sourceMsgId:'MSG-20260518-000006', errorCode:'TIMEOUT', errorMessage:'CitiFT Pending 超时(300s)',
+  { id:'MSTP-20260518-0006', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'交通银行北京分行', payeeBankCode:'301290000011', payeeAccount:'6226880123450567', payeeName:'赵六', amount:15000.00, valueDate:'2026-05-19', status:'CITIFT_PENDING_TIMEOUT', downstreamRef:'', sourceMsgId:'MSG-20260518-000006', errorCode:'TIMEOUT', errorMessage:'CitiFT Pending 超时(20min)',
     timeline: [
       { time:'11:20:00', from:'GCMS', to:'VALIDATING' },
       { time:'11:20:01', from:'VALIDATING', to:'SENDING' },
       { time:'11:20:02', from:'SENDING', to:'CITIFT_PENDING' },
       { time:'11:25:02', from:'CITIFT_PENDING', to:'CITIFT_PENDING_TIMEOUT' },
     ]},
-  { id:'MSTP-20260518-0007', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'建设银行北京分行', payeeBankCode:'105100000017', payeeAccount:'6229880123450234', payeeName:'周八', amount:60000.00, status:'LCP_CLEARED', downstreamRef:'DS-20260518-123462', sourceMsgId:'MSG-20260518-000007',
+  { id:'MSTP-20260518-0007', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'建设银行北京分行', payeeBankCode:'105100000017', payeeAccount:'6229880123450234', payeeName:'周八', amount:60000.00, valueDate:'2026-05-18', status:'LCP_CLEARED', downstreamRef:'DS-20260518-123462', sourceMsgId:'MSG-20260518-000007',
     timeline: [
       { time:'08:30:00', from:'GCMS', to:'VALIDATING' },
       { time:'08:30:01', from:'VALIDATING', to:'SENDING' },
@@ -312,7 +312,7 @@ const data = [
       { time:'08:30:16', from:'CITIFT_SUCC', to:'LCP_PENDING' },
       { time:'08:32:00', from:'LCP_PENDING', to:'LCP_CLEARED' },
     ]},
-  { id:'MSTP-20260518-0008', channel:'CIPS', payerBank:'招商银行', payerBankCode:'CMBCCNBSXXX', payerAccount:'0200003609000567890', payerName:'某某科技有限公司', payeeBank:'HSBC Holdings', payeeBankCode:'HBUKGB4BXXX', payeeAccount:'GB29NWBK60161331926819', payeeName:'David Brown', amount:75000.00, status:'CIPS_PENDING_TIMEOUT', downstreamRef:'DS-20260518-123463', sourceMsgId:'MSG-20260518-000008', errorCode:'TIMEOUT', errorMessage:'CIPS Pending 超时(300s)',
+  { id:'MSTP-20260518-0008', channel:'CIPS', payerBank:'招商银行', payerBankCode:'CMBCCNBSXXX', payerAccount:'0200003609000567890', payerName:'某某科技有限公司', payeeBank:'HSBC Holdings', payeeBankCode:'HBUKGB4BXXX', payeeAccount:'GB29NWBK60161331926819', payeeName:'David Brown', amount:75000.00, valueDate:'2026-05-19', status:'CIPS_PENDING_TIMEOUT', downstreamRef:'DS-20260518-123463', sourceMsgId:'MSG-20260518-000008', errorCode:'TIMEOUT', errorMessage:'CIPS Pending 超时(20min)',
     timeline: [
       { time:'09:00:00', from:'GCMS', to:'VALIDATING' },
       { time:'09:00:01', from:'VALIDATING', to:'SENDING' },
@@ -321,7 +321,7 @@ const data = [
       { time:'09:00:16', from:'CITIFT_SUCC', to:'CIPS_PENDING' },
       { time:'09:05:16', from:'CIPS_PENDING', to:'CIPS_PENDING_TIMEOUT' },
     ]},
-  { id:'MSTP-20260518-0009', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'招商银行北京分行', payeeBankCode:'308584000013', payeeAccount:'6214830123456789', payeeName:'吴九', amount:35000.00, status:'VALIDATING_FAILED', downstreamRef:'', sourceMsgId:'MSG-20260518-000009', errorCode:'ENRICHMENT_FAIL', errorMessage:'收款账号映射未找到，请检查映射表配置',
+  { id:'MSTP-20260518-0009', channel:'CNAPS', payerBank:'工商银行北京分行', payerBankCode:'102100099996', payerAccount:'0200003609000123456', payerName:'某某科技有限公司', payeeBank:'招商银行北京分行', payeeBankCode:'308584000013', payeeAccount:'6214830123456789', payeeName:'吴九', amount:35000.00, valueDate:'2026-05-19', status:'VALIDATING_FAILED', downstreamRef:'', sourceMsgId:'MSG-20260518-000009', errorCode:'ENRICHMENT_FAIL', errorMessage:'收款账号映射未找到，请检查映射表配置',
     timeline: [
       { time:'14:00:00', from:'GCMS', to:'VALIDATING' },
       { time:'14:00:05', from:'VALIDATING', to:'VALIDATING_FAILED' },
@@ -342,6 +342,7 @@ data.forEach(r => {
     <td>${maskAccount(r.payeeAccount)}</td>
     <td>${maskName(r.payeeName)}</td>
     <td>${formatAmount(r.amount)}</td>
+    <td>${r.valueDate}</td>
     <td><span class="tag tag-${s.cls}">${s.label}</span></td>
   </tr>`;
 });
@@ -377,6 +378,8 @@ function showDetail(id) {
       <div class="detail-label">交易ID</div><div class="detail-value" style="font-family:monospace">${r.id}</div>
       <div class="detail-label">上游消息ID</div><div class="detail-value" style="font-family:monospace">${r.sourceMsgId}</div>
       <div class="detail-label">渠道</div><div class="detail-value">${channelTag}</div>
+      <div class="detail-label">记账日期</div><div class="detail-value">${r.valueDate}</div>
+      <div class="detail-label">入库时间</div><div class="detail-value" style="font-family:monospace">${r.timeline[0]?.time ? '2026-05-18 ' + r.timeline[0].time : '-'}</div>
       <div class="detail-label">状态</div><div class="detail-value">
         <span class="tag tag-${s.cls}" style="margin-bottom:4px">${s.label}</span>
         ${buildStatusFlow(r.status, r.channel)}

@@ -93,6 +93,7 @@ MSTP 作为客户端调用下游支付结算系统的 RESTful API，完成支付
   },
   "amount": 100000.00,
   "currency": "CNY",
+  "valueDate": "2026-05-19",
   "referenceNo": "REF-20260518-001",
   "remark": "测试付款"
 }
@@ -114,6 +115,7 @@ MSTP 作为客户端调用下游支付结算系统的 RESTful API，完成支付
 | payee.accountName | $.payee.accountName | String(200) | Y | 收款账户名称 |
 | amount | $.amount | Decimal(18,2) | Y | 金额 |
 | currency | $.currency | String(3) | Y | 币种 |
+| valueDate | $.valueDate | String(10) | Y | 记账日期（来自上游，格式 YYYY-MM-DD） |
 | referenceNo | $.referenceNo | String(64) | N | 业务参考号 |
 | remark | $.remark | String(200) | N | 备注 |
 
@@ -202,12 +204,12 @@ MSTP 作为客户端调用下游支付结算系统的 RESTful API，完成支付
 | 初始间隔 | 5s | 支付发送后首次查询间隔 |
 | 最大间隔 | 30s | 轮询间隔上限 |
 | 间隔递增 | 1.5倍 | 每次查询后间隔递增 |
-| Pending 超时 | 300s | 每个 Pending 状态超过 300s 自动标记为 timeout |
+| Pending 超时 | 20min | 每个 Pending 状态超过 20 分钟自动标记为 timeout |
 | 轮询条件 | status 含 PENDING | 仅 Pending 状态继续轮询 |
 
 轮询逻辑根据渠道类型区分：
-- **CNAPS**：轮询至 CitiFT Succ → LCP Pending → LCP Cleared，任一阶段 300s 超时则跳转 timeout
-- **CIPS**：轮询至 CitiFT Succ → CIPS Pending → CIPS Cleared，任一阶段 300s 超时则跳转 timeout
+- **CNAPS**：轮询至 CitiFT Succ → LCP Pending → LCP Cleared，任一阶段 20 分钟超时则跳转 timeout
+- **CIPS**：轮询至 CitiFT Succ → CIPS Pending → CIPS Cleared，任一阶段 20 分钟超时则跳转 timeout
 
 ## 5. 动账通知接口
 

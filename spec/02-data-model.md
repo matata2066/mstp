@@ -104,6 +104,7 @@
 | PAYEE_ACCOUNT_NAME | VARCHAR2(200) | Y | 收款账户名称 |
 | AMOUNT | NUMBER(18,2) | Y | 金额 |
 | CURRENCY | VARCHAR2(3) | Y | 币种 |
+| VALUE_DATE | DATE | Y | 记账日期（来自上游报文） |
 | STATUS | VARCHAR2(20) | Y | 交易状态（见状态机） |
 | DOWNSTREAM_REF | VARCHAR2(64) | N | 下游返回的参考号 |
 | ERROR_CODE | VARCHAR2(20) | N | 错误码 |
@@ -123,6 +124,7 @@
 - `IDX_STATUS`：INDEX(STATUS)
 - `IDX_CREATED_TIME`：INDEX(CREATED_TIME)
 - `IDX_PAYEE_ACCOUNT`：INDEX(PAYEE_ACCOUNT_NO)
+- `IDX_VALUE_DATE`：INDEX(VALUE_DATE)
 
 **交易状态机：**
 
@@ -146,7 +148,7 @@ SENDING                 发送支付指令中
     ▼
 CITIFT_PENDING          CitiFT 处理中
     │
-    ├─(300s超时)──→ CITIFT_PENDING_TIMEOUT
+    ├─(20min超时)──→ CITIFT_PENDING_TIMEOUT
     │
     ▼
 CITIFT_SUCC             CitiFT 处理成功
@@ -154,7 +156,7 @@ CITIFT_SUCC             CitiFT 处理成功
     ▼
 LCP_PENDING             LCP 清算中
     │
-    ├─(300s超时)──→ LCP_PENDING_TIMEOUT
+    ├─(20min超时)──→ LCP_PENDING_TIMEOUT
     │
     ▼
 LCP_CLEARED             LCP 清算完成（终态）
@@ -178,7 +180,7 @@ SENDING                 发送支付指令中
     ▼
 CITIFT_PENDING          CitiFT 处理中
     │
-    ├─(300s超时)──→ CITIFT_PENDING_TIMEOUT
+    ├─(20min超时)──→ CITIFT_PENDING_TIMEOUT
     │
     ▼
 CITIFT_SUCC             CitiFT 处理成功
@@ -186,7 +188,7 @@ CITIFT_SUCC             CitiFT 处理成功
     ▼
 CIPS_PENDING            CIPS 清算中
     │
-    ├─(300s超时)──→ CIPS_PENDING_TIMEOUT
+    ├─(20min超时)──→ CIPS_PENDING_TIMEOUT
     │
     ▼
 CIPS_CLEARED            CIPS 清算完成（终态）
@@ -213,7 +215,7 @@ CIPS_CLEARED            CIPS 清算完成（终态）
 
 #### 超时机制
 
-- 每个 Pending 状态（CitiFT Pending / LCP Pending / CIPS Pending）均设置 300 秒超时
+- 每个 Pending 状态（CitiFT Pending / LCP Pending / CIPS Pending）均设置 20 分钟超时
 - 超时后自动跳转至对应的 Pending (timeout) 状态
 - 超时状态为异常终态，需人工介入处理
 

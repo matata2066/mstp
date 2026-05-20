@@ -60,6 +60,7 @@ MSTP 通过 Solace 消息中间件接收上游业务系统发送的支付请求�
     "amount": 100000.00,
     "channel": "CNAPS",
     "payeeBankCode": "102100099996",
+    "valueDate": "2026-05-19",
     "referenceNo": "REF-20260518-001",
     "remark": "测试付款"
   }
@@ -79,6 +80,7 @@ MSTP 通过 Solace 消息中间件接收上游业务系统发送的支付请求�
 | amount | $.paymentRequest.amount | Decimal(18,2) | Y | > 0 | 金额 |
 | channel | $.paymentRequest.channel | String(10) | Y | 枚举：CNAPS/CIPS | 支付渠道 |
 | payeeBankCode | $.paymentRequest.payeeBankCode | String(20) | Y | 非空 | 收款行行号 |
+| valueDate | $.paymentRequest.valueDate | String(10) | Y | ISO 日期格式 YYYY-MM-DD | 记账日期 |
 | referenceNo | $.paymentRequest.referenceNo | String(64) | N | - | 业务参考号 |
 | remark | $.paymentRequest.remark | String(200) | N | - | 备注 |
 
