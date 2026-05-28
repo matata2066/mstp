@@ -28,12 +28,12 @@ test.describe('支付指令查询页面', () => {
 
   test('双击行打开交易详情弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await expect(page.locator('.modal.show .modal-title')).toContainText('交易详情');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('交易详情');
   });
 
   test('交易详情弹窗显示基本信息', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    const body = page.locator('.modal.show .modal-body');
+    const body = page.locator('.modal-overlay.show .modal-body');
     await expect(body).toContainText('交易ID');
     await expect(body).toContainText('渠道');
     await expect(body).toContainText('记账日期');
@@ -43,20 +43,20 @@ test.describe('支付指令查询页面', () => {
 
   test('交易详情弹窗显示付款信息和收款信息', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    const body = page.locator('.modal.show .modal-body');
+    const body = page.locator('.modal-overlay.show .modal-body');
     await expect(body).toContainText('付款信息');
     await expect(body).toContainText('收款信息');
   });
 
   test('交易详情弹窗显示状态变更记录', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    const body = page.locator('.modal.show .modal-body');
+    const body = page.locator('.modal-overlay.show .modal-body');
     await expect(body).toContainText('状态变更记录');
   });
 
   test('状态流图显示在详情中', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    const statusNodes = page.locator('.modal.show .status-node');
+    const statusNodes = page.locator('.modal-overlay.show .status-node');
     await expect(statusNodes.first()).toBeVisible();
   });
 
@@ -73,7 +73,7 @@ test.describe('支付指令查询页面', () => {
       }
     }
     if (foundRetryRow) {
-      await expect(page.locator('.modal.show .retry-btn')).toBeVisible();
+      await expect(page.locator('.modal-overlay.show .retry-btn')).toBeVisible();
     }
   });
 
@@ -87,10 +87,10 @@ test.describe('支付指令查询页面', () => {
         break;
       }
     }
-    const retryBtn = page.locator('.modal.show .retry-btn');
+    const retryBtn = page.locator('.modal-overlay.show .retry-btn');
     if (await retryBtn.isVisible()) {
       await retryBtn.click();
-      await expect(page.locator('.modal.show .modal-title:has-text("确认重试")')).toBeVisible();
+      await expect(page.locator('.modal-overlay.show .modal-title:has-text("确认重试")')).toBeVisible();
     }
   });
 

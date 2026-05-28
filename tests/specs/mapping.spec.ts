@@ -25,12 +25,12 @@ test.describe('收款账号映射页面', () => {
 
   test('双击行打开详情弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await expect(page.locator('.modal.show .modal-title')).toContainText('收款账号映射详情');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('收款账号映射详情');
   });
 
   test('详情弹窗显示审批信息', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    const body = page.locator('.modal.show .modal-body');
+    const body = page.locator('.modal-overlay.show .modal-body');
     await expect(body).toContainText('制单人');
     await expect(body).toContainText('审批人');
   });
@@ -42,12 +42,12 @@ test.describe('收款账号映射页面', () => {
 
   test('点击新增按钮打开新增弹窗', async ({ page }) => {
     await page.locator('button:has-text("新增")').click();
-    await expect(page.locator('.modal.show .modal-title')).toContainText('新增收款账号映射');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('新增收款账号映射');
   });
 
   test('新增弹窗包含必填字段', async ({ page }) => {
     await page.locator('button:has-text("新增")').click();
-    const modal = page.locator('.modal.show');
+    const modal = page.locator('.modal-overlay.show');
     await expect(modal).toContainText('收款账号');
     await expect(modal).toContainText('账户名称');
     await expect(modal).toContainText('支付通道');
@@ -55,7 +55,7 @@ test.describe('收款账号映射页面', () => {
 
   test('点击详情按钮打开弹窗', async ({ page }) => {
     await page.locator('tbody tr:first-child .btn-link:has-text("详情")').click();
-    await expect(page.locator('.modal.show')).toBeVisible();
+    await expect(page.locator('.modal-overlay.show')).toBeVisible();
   });
 });
 
@@ -75,7 +75,7 @@ test.describe('行号映射页面', () => {
 
   test('双击行打开详情弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await expect(page.locator('.modal.show .modal-title')).toContainText('行号映射详情');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('行号映射详情');
   });
 });
 
@@ -116,12 +116,12 @@ test.describe('交易附言映射页面', () => {
 
   test('双击行打开详情弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await expect(page.locator('.modal.show .modal-title')).toContainText('交易附言映射详情');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('交易附言映射详情');
   });
 
   test('点击新增按钮打开新增弹窗', async ({ page }) => {
     await page.locator('button:has-text("新增")').click();
-    await expect(page.locator('.modal.show .modal-title')).toContainText('新增交易附言映射');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('新增交易附言映射');
   });
 });
 
@@ -141,6 +141,6 @@ test.describe('付款账号配置页面', () => {
 
   test('双击行打开详情弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await expect(page.locator('.modal.show .modal-title')).toContainText('付款账号配置详情');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('付款账号配置详情');
   });
 });

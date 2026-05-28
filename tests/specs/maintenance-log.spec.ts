@@ -41,12 +41,12 @@ test.describe('维护记录查询页面', () => {
 
   test('双击行打开维护记录详情弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await expect(page.locator('.modal.show .modal-title')).toContainText('维护记录详情');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('维护记录详情');
   });
 
   test('详情弹窗显示变更内容', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    const body = page.locator('.modal.show .modal-body');
+    const body = page.locator('.modal-overlay.show .modal-body');
     await expect(body).toContainText('变更内容');
   });
 
@@ -58,7 +58,7 @@ test.describe('维护记录查询页面', () => {
       const text = await rows.nth(i).textContent();
       if (text?.includes('拒绝')) {
         await rows.nth(i).dblclick();
-        const body = page.locator('.modal.show .modal-body');
+        const body = page.locator('.modal-overlay.show .modal-body');
         await expect(body).toContainText('拒绝原因');
         found = true;
         break;
@@ -83,6 +83,6 @@ test.describe('维护记录查询页面', () => {
 
   test('点击详情按钮打开弹窗', async ({ page }) => {
     await page.locator('tbody tr:first-child .btn-link:has-text("详情")').click();
-    await expect(page.locator('.modal.show')).toBeVisible();
+    await expect(page.locator('.modal-overlay.show')).toBeVisible();
   });
 });

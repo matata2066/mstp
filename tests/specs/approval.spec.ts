@@ -30,39 +30,38 @@ test.describe('审批查询页面', () => {
 
   test('双击行打开审批详情弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await expect(page.locator('.modal.show .modal-title')).toContainText('审批详情');
+    await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('审批详情');
   });
 
   test('审批详情弹窗显示变更内容', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    const body = page.locator('.modal.show .modal-body');
+    const body = page.locator('.modal-overlay.show .modal-body');
     await expect(body).toContainText('变更内容');
   });
 
   test('审批详情弹窗有通过和拒绝按钮', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    const footer = page.locator('.modal.show .modal-footer');
+    const footer = page.locator('.modal-overlay.show .modal-footer');
     await expect(footer.locator('button:has-text("通过")')).toBeVisible();
     await expect(footer.locator('button:has-text("拒绝")')).toBeVisible();
   });
 
   test('点击通过按钮弹出确认弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await page.locator('.modal.show .modal-footer button:has-text("通过")').click();
-    await expect(page.locator('.modal.show .modal-title:has-text("审批确认")')).toBeVisible();
+    await page.locator('.modal-overlay.show .modal-footer button:has-text("通过")').click();
+    await expect(page.locator('.modal-overlay.show .modal-title:has-text("审批确认")')).toBeVisible();
   });
 
   test('点击拒绝按钮弹出拒绝弹窗', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await page.locator('.modal.show .modal-footer button:has-text("拒绝")').click();
-    await expect(page.locator('.modal.show .modal-title:has-text("拒绝审批")')).toBeVisible();
+    await page.locator('.modal-overlay.show .modal-footer button:has-text("拒绝")').click();
+    await expect(page.locator('.modal-overlay.show .modal-title:has-text("拒绝审批")')).toBeVisible();
   });
 
   test('拒绝弹窗包含拒绝原因输入框', async ({ page }) => {
     await openDetailByDblClick(page, 0);
-    await page.locator('.modal.show .modal-footer button:has-text("拒绝")').click();
-    const rejectModal = page.locator('.modal.show .modal-title:has-text("拒绝审批")').locator('..');
-    await expect(rejectModal.locator('textarea')).toBeVisible();
+    await page.locator('.modal-overlay.show .modal-footer button:has-text("拒绝")').click();
+    await expect(page.locator('#rejectModal textarea')).toBeVisible();
   });
 
   test('附言映射审批记录显示正确', async ({ page }) => {

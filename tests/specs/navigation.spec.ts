@@ -46,16 +46,16 @@ test.describe('弹窗交互', () => {
   test('ESC键关闭弹窗', async ({ page }) => {
     await navigateTo(page, 'accountMapping');
     await page.locator('button:has-text("新增")').click();
-    await expect(page.locator('.modal.show')).toBeVisible();
+    await expect(page.locator('.modal-overlay.show')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.locator('.modal.show')).not.toBeVisible();
+    await expect(page.locator('.modal-overlay.show')).not.toBeVisible();
   });
 
   test('点击遮罩层关闭弹窗', async ({ page }) => {
     await navigateTo(page, 'accountMapping');
     await page.locator('button:has-text("新增")').click();
-    await expect(page.locator('.modal.show')).toBeVisible();
-    await page.locator('.modal.show').evaluate(el => {
+    await expect(page.locator('.modal-overlay.show')).toBeVisible();
+    await page.locator('.modal-overlay.show').evaluate(el => {
       el.classList.remove('show');
     });
   });
