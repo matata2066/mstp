@@ -60,6 +60,32 @@
 
 根据支付渠道配置付款账号信息。
 
+### 2.4 交易附言映射表 (MSTP_REMARK_MAPPING)
+
+存储交易附言的匹配模式与中文附言的映射关系。要素补齐时，根据上游报文中的 remark 字段匹配 MATCH_PATTERN，将匹配到的 REMARK_CHINESE 填入支付指令。
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| ID | NUMBER(20) | PK | 主键，序列生成 |
+| MATCH_PATTERN | VARCHAR2(100) | Y | 匹配模式（业务主键，用于与上游remark字段匹配） |
+| REMARK_CHINESE | VARCHAR2(200) | Y | 中文附言（匹配成功后填入支付指令） |
+| STATUS | VARCHAR2(10) | Y | 状态：ACTIVE/INACTIVE |
+| REMARK | VARCHAR2(500) | N | 备注 |
+| IS_DELETED | NUMBER(1) | Y | 软删除标记：0-有效，1-已删除 |
+| CREATED_BY | VARCHAR2(50) | Y | 创建人 |
+| CREATED_TIME | TIMESTAMP(6) | Y | 创建时间 |
+| UPDATED_BY | VARCHAR2(50) | Y | 修改人 |
+| UPDATED_TIME | TIMESTAMP(6) | Y | 修改时间 |
+
+**索引：**
+- `UK_MATCH_PATTERN`：UNIQUE(MATCH_PATTERN, IS_DELETED)
+
+**匹配规则：**
+- 上游报文 `remark` 字段与 `MATCH_PATTERN` 进行精确匹配
+- 若无精确匹配，支持前缀匹配（MATCH_PATTERN 以 `%` 结尾时视为前缀匹配模式）
+- 匹配优先级：精确匹配 > 前缀匹配（按 MATCH_PATTERN 长度降序）
+- 无匹配时 REMARK_CHINESE 为空，不影响交易处理
+
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | ID | NUMBER(20) | PK | 主键 |
@@ -105,6 +131,7 @@
 | AMOUNT | NUMBER(18,2) | Y | 金额 |
 | CURRENCY | VARCHAR2(3) | Y | 币种 |
 | VALUE_DATE | DATE | Y | 记账日期（来自上游报文） |
+| REMARK_CHINESE | VARCHAR2(200) | N | 交易附言（中文，来自附言映射表） |
 | STATUS | VARCHAR2(20) | Y | 交易状态（见状态机） |
 | DOWNSTREAM_REF | VARCHAR2(64) | N | 下游返回的参考号 |
 | ERROR_CODE | VARCHAR2(20) | N | 错误码 |
@@ -254,7 +281,7 @@ CIPS_CLEARED            CIPS 清算完成（终态）
 |--------|------|------|------|
 | ID | NUMBER(20) | PK | 主键 |
 | APPROVAL_ID | VARCHAR2(40) | Y | 审批单号 |
-| BIZ_TYPE | VARCHAR2(20) | Y | 业务类型：ACCOUNT_MAPPING / BANK_MAPPING / PAYER_CONFIG |
+| BIZ_TYPE | VARCHAR2(20) | Y | 业务类型：ACCOUNT_MAPPING / BANK_MAPPING / PAYER_CONFIG / REMARK_MAPPING |
 | BIZ_ID | NUMBER(20) | Y | 关联业务记录ID |
 | OPERATION_TYPE | VARCHAR2(10) | Y | 操作类型：CREATE / UPDATE / DELETE |
 | OPERATION_DATA | CLOB | Y | 操作数据（JSON格式，保存变更前后快照） |
@@ -345,28 +372,29 @@ CIPS_CLEARED            CIPS 清算完成（终态）
                         │     │  IS_AUTHORIZED      │
                         │     └────────────────────┘
                         │
-┌────────────────────┐  │
-│ MSTP_PAYMENT_      │  │
-│ INSTRUCTION        │  │
-├────────────────────┤  │
-│ *ID                │  │
-│  TXN_ID            │  │
-│  CHANNEL           │  │
-│  PAYER_BANK_CODE   │  │
-│  PAYER_BANK_NAME   │  │
-│  PAYER_ACCOUNT_NO ◄──┘
-│  PAYER_ACCOUNT_NAME│
-│  PAYEE_BANK_CODE   │
-│  PAYEE_BANK_NAME   │
-│  PAYEE_ACCOUNT_NO  │
-│  PAYEE_ACCOUNT_NAME│
-│  AMOUNT            │
-│  CURRENCY          │
-│  STATUS            │
-│  DOWNSTREAM_REF    │
-│  ERROR_CODE        │
-│  ERROR_MESSAGE     │
-└────────┬───────────┘
+┌────────────────────┐  │     ┌────────────────────┐
+│ MSTP_REMARK_       │  │     │ MSTP_PAYMENT_      │
+│ MAPPING            │  │     │ INSTRUCTION        │
+├────────────────────┤  │     ├────────────────────┤
+│ *ID                │  │     │ *ID                │
+│  MATCH_PATTERN     │  │     │  TXN_ID            │
+│  REMARK_CHINESE ───┼──┼────►│  CHANNEL           │
+│  STATUS            │  │     │  PAYER_BANK_CODE   │
+│  REMARK            │  │     │  PAYER_BANK_NAME   │
+└────────────────────┘  │     │  PAYER_ACCOUNT_NO ◄──┘
+                        │     │  PAYER_ACCOUNT_NAME│
+                        │     │  PAYEE_BANK_CODE   │
+                        │     │  PAYEE_BANK_NAME   │
+                        │     │  PAYEE_ACCOUNT_NO  │
+                        │     │  PAYEE_ACCOUNT_NAME│
+                        │     │  AMOUNT            │
+                        │     │  CURRENCY          │
+                        │     │  REMARK_CHINESE    │
+                        │     │  STATUS            │
+                        │     │  DOWNSTREAM_REF    │
+                        │     │  ERROR_CODE        │
+                        │     │  ERROR_MESSAGE     │
+                        │     └────────┬───────────┘
          │ 1:N
          ▼
 ┌────────────────────┐

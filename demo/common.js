@@ -6,6 +6,7 @@ function initSidebar(activeId) {
     { group: '映射管理', items: [
       { id: 'account-mapping', icon: '🏦', label: '账号映射', href: 'account-mapping.html' },
       { id: 'bank-mapping', icon: '🏢', label: '行号映射', href: 'bank-mapping.html' },
+      { id: 'remark-mapping', icon: '💬', label: '附言映射', href: 'remark-mapping.html' },
       { id: 'payer-config', icon: '💳', label: '付款配置', href: 'payer-config.html' },
       { id: 'approval-query', icon: '📋', label: '审批查询', href: 'approval-pending.html', badge: 3 },
     ]},

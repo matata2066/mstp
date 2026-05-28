@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 交易附言映射</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">交易附言映射</div>
+        <button class="btn btn-primary" onclick="openModal('addModal')">+ 新增</button>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">匹配模式</span>
+          <input class="form-input" placeholder="请输入匹配模式">
+        </div>
+        <div class="form-item">
+          <span class="form-label">状态</span>
+          <select class="form-select"><option>全部</option><option>有效</option><option>停用</option></select>
+        </div>
+        <button class="btn btn-primary">查询</button>
+        <button class="btn">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>序号</th><th>匹配模式</th><th>中文附言</th><th>状态</th><th>备注</th><th>操作</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span>共 5 条</span>
+          <div class="pagination-pages">
+            <div class="page-btn active">1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">交易附言映射详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+  </div>
+</div>
+
+<div id="addModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">新增交易附言映射</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-label required">匹配模式</div>
+        <input class="form-input" placeholder="请输入匹配模式（如 SALARY，LOAN% 为前缀匹配）">
+        <div class="form-label required">中文附言</div>
+        <input class="form-input" placeholder="请输入中文附言">
+        <div class="form-label">备注</div>
+        <input class="form-input" placeholder="请输入备注">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('addModal')">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('remark-mapping');
+initHeader([{text:'映射管理',href:'#'},{text:'附言映射'}]);
+
+const data = [
+  { id:1, matchPattern:'SALARY', remarkChinese:'工资', status:'有效', remark:'用于工资发放交易', maker:'user001', makerTime:'2026-05-18 10:00:00', checker:'user002', checkerTime:'2026-05-18 10:05:00' },
+  { id:2, matchPattern:'TRANSFER', remarkChinese:'转账', status:'有效', remark:'一般转账交易', maker:'user001', makerTime:'2026-05-17 14:20:00', checker:'user003', checkerTime:'2026-05-17 14:30:00' },
+  { id:3, matchPattern:'LOAN%', remarkChinese:'贷款', status:'停用', remark:'前缀匹配，已停用', maker:'user002', makerTime:'2026-05-16 09:00:00', checker:'user001', checkerTime:'2026-05-16 09:10:00' },
+  { id:4, matchPattern:'TAX', remarkChinese:'税款', status:'有效', remark:'税款缴纳交易', maker:'user003', makerTime:'2026-05-15 16:00:00', checker:'user002', checkerTime:'2026-05-15 16:10:00' },
+  { id:5, matchPattern:'REPAY%', remarkChinese:'还款', status:'有效', remark:'前缀匹配，贷款还款', maker:'user001', makerTime:'2026-05-14 11:30:00', checker:'user003', checkerTime:'2026-05-14 11:40:00' },
+];
+
+const tbody = document.getElementById('tableBody');
+data.forEach(r => {
+  const statusTag = r.status === '有效' ? '<span class="tag tag-green">有效</span>' : '<span class="tag tag-red">停用</span>';
+  const isPrefix = r.matchPattern.endsWith('%');
+  const patternDisplay = isPrefix
+    ? `${r.matchPattern} <span style="color:var(--warning);font-size:11px">[前缀匹配]</span>`
+    : r.matchPattern;
+  tbody.innerHTML += `<tr ondblclick="showDetail(${r.id})">
+    <td>${r.id}</td>
+    <td style="font-family:monospace">${patternDisplay}</td>
+    <td>${r.remarkChinese}</td>
+    <td>${statusTag}</td>
+    <td>${r.remark || '-'}</td>
+    <td>
+      <button class="btn-link btn-sm" onclick="event.stopPropagation();showDetail(${r.id})">详情</button>
+      <button class="btn-link btn-sm" onclick="event.stopPropagation();openModal('addModal')">编辑</button>
+    </td>
+  </tr>`;
+});
+
+function showDetail(id) {
+  const r = data.find(d => d.id === id);
+  if (!r) return;
+  const isPrefix = r.matchPattern.endsWith('%');
+  const patternDesc = isPrefix ? '（前缀匹配）' : '（精确匹配）';
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-label">匹配模式</div><div class="detail-value" style="font-family:monospace">${r.matchPattern} <span style="color:var(--text-secondary);font-size:12px">${patternDesc}</span></div>
+      <div class="detail-label">中文附言</div><div class="detail-value">${r.remarkChinese}</div>
+      <div class="detail-label">状态</div><div class="detail-value">${r.status}</div>
+      <div class="detail-label">备注</div><div class="detail-value">${r.remark || '-'}</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">审批信息</div>
+      <div class="detail-grid">
+        <div class="detail-label">制单人</div><div class="detail-value">${r.maker}</div>
+        <div class="detail-label">制单时间</div><div class="detail-value">${r.makerTime}</div>
+        <div class="detail-label">审批人</div><div class="detail-value">${r.checker}</div>
+        <div class="detail-label">审批时间</div><div class="detail-value">${r.checkerTime}</div>
+      </div>
+    </div>`;
+  openModal('detailModal');
+}
+</script>
+</body>
+</html>

@@ -18,7 +18,7 @@
       <div class="search-bar">
         <div class="form-item">
           <span class="form-label">业务类型</span>
-          <select class="form-select"><option>全部</option><option>账号映射</option><option>行号映射</option><option>付款配置</option></select>
+          <select class="form-select"><option>全部</option><option>账号映射</option><option>行号映射</option><option>附言映射</option><option></option>付款配置</option></select>
         </div>
         <div class="form-item">
           <span class="form-label">审批状态</span>
@@ -42,7 +42,7 @@
           </table>
         </div>
         <div class="pagination">
-          <span>共 9 条</span>
+          <span>共 11 条</span>
           <div class="pagination-pages">
             <div class="page-btn active">1</div>
           </div>
@@ -78,6 +78,8 @@ const data = [
   { id:7, approvalId:'APR-20260515-001', bizType:'账号映射', opType:'停用', maker:'user002', approvalStatus:'通过', checker:'user003', checkerTime:'2026-05-15 14:00:00', detail:'停用收款账号 6221880123450123' },
   { id:8, approvalId:'APR-20260514-001', bizType:'行号映射', opType:'新增', maker:'user003', approvalStatus:'通过', checker:'user002', checkerTime:'2026-05-14 11:40:00', detail:'新增 CIPS 行号 CIBKCNBJXXX，行名：兴业银行股份有限公司' },
   { id:9, approvalId:'APR-20260513-001', bizType:'付款配置', opType:'修改', maker:'user001', approvalStatus:'拒绝', checker:'user002', checkerTime:'2026-05-13 15:30:00', detail:'修改 CIPS 渠道 USD 币种付款配置，拒绝原因：付款账号信息有误', rejectReason:'付款账号信息有误，请核实后重新提交' },
+  { id:10, approvalId:'APR-20260512-001', bizType:'附言映射', opType:'新增', maker:'user001', approvalStatus:'通过', checker:'user003', checkerTime:'2026-05-12 11:00:00', detail:'新增附言映射 SALARY → 工资' },
+  { id:11, approvalId:'APR-20260511-001', bizType:'附言映射', opType:'修改', maker:'user002', approvalStatus:'待审批', checker:'', checkerTime:'', detail:'修改附言映射 LOAN% 中文附言：贷款 → 贷款发放' },
 ];
 
 const tbody = document.getElementById('tableBody');

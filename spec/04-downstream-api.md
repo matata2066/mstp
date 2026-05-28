@@ -94,6 +94,7 @@ MSTP 作为客户端调用下游支付结算系统的 RESTful API，完成支付
   "amount": 100000.00,
   "currency": "CNY",
   "valueDate": "2026-05-19",
+  "remarkChinese": "工资",
   "referenceNo": "REF-20260518-001",
   "remark": "测试付款"
 }
@@ -116,6 +117,7 @@ MSTP 作为客户端调用下游支付结算系统的 RESTful API，完成支付
 | amount | $.amount | Decimal(18,2) | Y | 金额 |
 | currency | $.currency | String(3) | Y | 币种 |
 | valueDate | $.valueDate | String(10) | Y | 记账日期（来自上游，格式 YYYY-MM-DD） |
+| remarkChinese | $.remarkChinese | String(200) | N | 交易附言（中文，来自附言映射表） |
 | referenceNo | $.referenceNo | String(64) | N | 业务参考号 |
 | remark | $.remark | String(200) | N | 备注 |
 

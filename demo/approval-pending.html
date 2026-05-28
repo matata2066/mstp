@@ -18,7 +18,7 @@
       <div class="search-bar">
         <div class="form-item">
           <span class="form-label">业务类型</span>
-          <select class="form-select"><option>全部</option><option>账号映射</option><option>行号映射</option><option>付款配置</option></select>
+          <select class="form-select"><option>全部</option><option>账号映射</option><option>行号映射</option><option>附言映射</option><option></option>付款配置</option></select>
         </div>
         <div class="form-item">
           <span class="form-label">制单人</span>
@@ -38,7 +38,7 @@
           </table>
         </div>
         <div class="pagination">
-          <span>共 3 条</span>
+          <span>共 4 条</span>
           <div class="pagination-pages"><div class="page-btn active">1</div></div>
         </div>
       </div>
@@ -111,11 +111,13 @@ const data = [
     detail: { bankCode:'102100099996', beforeName:'中国工商银行北京分行', afterName:'中国工商银行北京市分行', codeType:'CNAPS' }},
   { id:3, approvalId:'APR-20260518-003', bizType:'付款配置', bizTypeCode:'PAYER_CONFIG', opType:'新增', maker:'user002', makerTime:'2026-05-18 10:10:00',
     detail: { channel:'CIPS', bankCode:'CMBCCNBSXXX', bankName:'招商银行股份有限公司', accountNo:'0200003609000567890', accountName:'某某科技有限公司', currency:'EUR' }},
+  { id:4, approvalId:'APR-20260518-004', bizType:'附言映射', bizTypeCode:'REMARK_MAPPING', opType:'新增', maker:'user001', makerTime:'2026-05-18 10:15:00',
+    detail: { matchPattern:'BONUS', remarkChinese:'奖金', remark:'年终奖金发放' }},
 ];
 
 const tbody = document.getElementById('tableBody');
 data.forEach(r => {
-  const bizTag = r.bizTypeCode === 'ACCOUNT_MAPPING' ? 'tag-blue' : r.bizTypeCode === 'BANK_MAPPING' ? 'tag-purple' : 'tag-orange';
+  const bizTag = r.bizTypeCode === 'ACCOUNT_MAPPING' ? 'tag-blue' : r.bizTypeCode === 'BANK_MAPPING' ? 'tag-purple' : r.bizTypeCode === 'REMARK_MAPPING' ? 'tag-cyan' : 'tag-orange';
   const opTag = r.opType === '新增' ? 'tag-green' : r.opType === '修改' ? 'tag-blue' : 'tag-red';
   tbody.innerHTML += `<tr ondblclick="showDetail(${r.id})">
     <td>${r.id}</td>
@@ -149,6 +151,13 @@ function showDetail(id) {
         <div class="detail-label">类型</div><div class="detail-value">${d.codeType}</div>
         <div class="detail-label">原行名</div><div class="detail-value" style="text-decoration:line-through;color:var(--error)">${d.beforeName}</div>
         <div class="detail-label">新行名</div><div class="detail-value" style="color:var(--success)">${d.afterName}</div>
+      </div>`;
+  } else if (r.bizTypeCode === 'REMARK_MAPPING') {
+    detailHtml = `
+      <div class="detail-grid">
+        <div class="detail-label">匹配模式</div><div class="detail-value" style="font-family:monospace">${d.matchPattern}</div>
+        <div class="detail-label">中文附言</div><div class="detail-value">${d.remarkChinese}</div>
+        <div class="detail-label">备注</div><div class="detail-value">${d.remark || '-'}</div>
       </div>`;
   } else {
     detailHtml = `
