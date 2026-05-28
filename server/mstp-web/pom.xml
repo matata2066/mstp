@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.mstp</groupId>
+        <artifactId>mstp</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mstp-web</artifactId>
+    <name>MSTP - Web</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.mstp</groupId>
+            <artifactId>mstp-service-message</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mstp</groupId>
+            <artifactId>mstp-service-payment</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mstp</groupId>
+            <artifactId>mstp-service-mapping</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mstp</groupId>
+            <artifactId>mstp-service-approval</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mstp</groupId>
+            <artifactId>mstp-integration-auth</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mstp</groupId>
+            <artifactId>mstp-integration-rbac</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

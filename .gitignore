@@ -34,3 +34,9 @@ logs/
 # Python
 __pycache__/
 *.pyc
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Vite
+ui/vite.config.js.timestamp-*
