@@ -91,7 +91,7 @@ mstp/
 - JDK 17+（生产环境路径 `/opt/jdk/latest`）
 - Maven 3.8+
 - Node.js 18+
-- Oracle 19c+（开发环境可用 H2 替代）
+- Docker（可选，用于本地 Oracle XE）
 
 ### 1. Demo 预览（无需任何后端）
 
@@ -120,11 +120,27 @@ mvn clean package
 
 ### 3. 后端启动
 
-**开发环境：**
+**开发环境（H2 内存库，零配置）：**
 
 ```bash
 cd server
-mvn spring-boot:run -pl mstp-app
+mvn spring-boot:run -pl mstp-app -Dspring-boot.run.profiles=dev
+# H2 控制台: http://localhost:8080/h2-console
+# JDBC URL: jdbc:h2:mem:mstp  用户名: sa  密码: 空
+```
+
+**开发环境（Docker Oracle XE）：**
+
+```bash
+# 1. 启动 Oracle XE 容器
+cd server
+docker compose up -d
+
+# 2. 等待 Oracle 就绪（约 2 分钟）
+docker compose logs -f oracle-xe
+
+# 3. 启动应用
+mvn spring-boot:run -pl mstp-app -Dspring-boot.run.profiles=oracle
 ```
 
 **生产环境：**
@@ -237,7 +253,67 @@ npm run test:debug
 </VirtualHost>
 ```
 
-## 数据库初始化
+## 数据库
+
+### 三种本地开发模式
+
+| 模式 | Profile | 数据库 | 适用场景 |
+|------|---------|--------|----------|
+| H2 内存库 | `dev` | H2（Oracle 兼容模式） | 快速启动、单元测试、无需安装 |
+| Docker Oracle | `oracle` | Oracle XE 21c | 本地开发调试、Oracle 语法验证 |
+| 生产 Oracle | `prod` | OraaS / Oracle RAC | 生产部署 |
+
+### 模式一：H2 内存库（推荐快速启动）
+
+```bash
+mvn spring-boot:run -pl mstp-app -Dspring-boot.run.profiles=dev
+```
+
+- 零安装，启动即用
+- H2 控制台：`http://localhost:8080/h2-console`（JDBC URL: `jdbc:h2:mem:mstp`，用户名: `sa`，密码: 空）
+- JPA `ddl-auto=create-drop`，自动建表，停止后数据丢失
+- Flyway 禁用（H2 不完全兼容 Oracle DDL）
+- **注意**：H2 不支持 Oracle 专有语法（如 `PARTITION BY RANGE`、`NUMTOYMINTERVAL`），生产 SQL 需在 Oracle 环境验证
+
+### 模式二：Docker Oracle XE
+
+```bash
+# 启动容器
+cd server
+docker compose up -d
+
+# 查看日志，等待 "DATABASE IS READY TO USE"
+docker compose logs -f oracle-xe
+
+# 启动应用
+mvn spring-boot:run -pl mstp-app -Dspring-boot.run.profiles=oracle
+
+# 停止容器
+docker compose down
+
+# 停止并删除数据
+docker compose down -v
+```
+
+- 完全兼容 Oracle 语法，可验证分区表、序列等
+- 首次启动约需 2 分钟初始化
+- 数据持久化在 Docker Volume `oracle-data` 中
+- 连接信息：`localhost:1521/XEPDB1`，用户 `mstp/mstp`
+
+### 模式三：Testcontainers（CI/CD 集成测试）
+
+```bash
+# 运行集成测试（自动启动 Oracle 容器）
+cd server
+mvn verify -pl mstp-app
+```
+
+- 基于 JUnit 5 + Testcontainers，测试时自动拉起 Oracle XE 容器
+- 测试结束自动销毁，数据隔离
+- 继承 `BaseIntegrationTest` 即可使用
+- 需要 Docker 环境
+
+### 手动初始化数据库
 
 按顺序执行 `db/` 目录下的 SQL 脚本：
 
