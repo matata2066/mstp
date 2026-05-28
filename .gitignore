@@ -40,3 +40,7 @@ __pycache__/
 
 # Vite
 ui/vite.config.js.timestamp-*
+
+# Playwright
+tests/playwright-report/
+tests/test-results/
