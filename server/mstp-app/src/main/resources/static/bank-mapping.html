@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 行号映射</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">行号映射</div>
+        <button class="btn btn-primary" onclick="openAddModal()">+ 新增</button>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">行号</span>
+          <input class="form-input" id="searchBankCode" placeholder="请输入行号">
+        </div>
+        <div class="form-item">
+          <span class="form-label">行名</span>
+          <input class="form-input" id="searchBankName" placeholder="请输入行名">
+        </div>
+        <div class="form-item">
+          <span class="form-label">类型</span>
+          <select class="form-select" id="searchCodeType"><option value="">全部</option><option value="CNAPS">CNAPS</option><option value="CIPS">CIPS</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="loadData()">查询</button>
+        <button class="btn" onclick="resetSearch()">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>行号</th><th>行名</th><th>类型</th><th>操作</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="paginationInfo">共 0 条</span>
+          <div class="pagination-pages" id="paginationPages"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal-overlay">
+  <div class="modal" style="width:440px">
+    <div class="modal-header">
+      <div class="modal-title">确认删除</div>
+      <button class="modal-close" onclick="closeModal('confirmModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-body">
+        <div class="confirm-icon">⚠️</div>
+        <div class="confirm-text">确认删除该记录？</div>
+        <div class="confirm-sub">提交后需审核通过才会执行删除</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('confirmModal')">取消</button>
+      <button class="btn btn-primary" style="background:var(--error);border-color:var(--error);color:#fff" onclick="doDelete()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">行号映射详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+  </div>
+</div>
+
+<div id="addModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="addModalTitle">新增行号映射</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-label required">行号</div>
+        <input class="form-input" id="formBankCode" placeholder="CNAPS 12位数字 / CIPS BIC 11位">
+        <div class="form-label required">行名</div>
+        <input class="form-input" id="formBankName" placeholder="请输入行名">
+        <div class="form-label required">类型</div>
+        <select class="form-select" id="formCodeType"><option value="">请选择</option><option value="CNAPS">CNAPS</option><option value="CIPS">CIPS</option></select>
+        <div class="form-label">备注</div>
+        <input class="form-input" id="formRemark" placeholder="请输入备注">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addModal')">取消</button>
+      <button class="btn btn-primary" onclick="submitForm()">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('bank-mapping');
+initHeader([{text:'映射管理',href:'#'},{text:'行号映射'}]);
+
+let currentPage = 0;
+let pageSize = 20;
+let editingId = null;
+let deleteId = null;
+let pendingApprovals = [];
+
+function openDeleteModal(id) {
+  deleteId = id;
+  openModal('confirmModal');
+}
+
+function doDelete() {
+  fetch('/api/approvals/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bizType: 'BANK_MAPPING',
+      operationType: 'DELETE',
+      bizId: deleteId,
+      operationData: {},
+      makerId: 'admin'
+    })
+  })
+    .then(r => {
+      if (r.ok) {
+        showToast('已提交删除审批，等待审核', 'success');
+        closeModal('confirmModal');
+        loadData();
+      } else {
+        r.text().then(t => showToast('提交失败: ' + t, 'error'));
+      }
+    })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+function loadData() {
+  const bankCode = document.getElementById('searchBankCode').value.trim();
+  const bankName = document.getElementById('searchBankName').value.trim();
+  const codeType = document.getElementById('searchCodeType').value;
+  const params = new URLSearchParams({ page: currentPage, size: pageSize });
+  if (bankCode) params.append('bankCode', bankCode);
+  if (bankName) params.append('bankName', bankName);
+  if (codeType) params.append('codeType', codeType);
+
+  Promise.all([
+    fetch('/api/bank-mappings?' + params.toString()).then(r => r.json()),
+    fetch('/api/approvals?bizType=BANK_MAPPING&status=PENDING&size=100').then(r => r.json())
+  ]).then(([page, approvalPage]) => {
+    pendingApprovals = approvalPage.content || [];
+    renderTable(page.content, page);
+    renderPagination(page);
+  }).catch(() => showToast('加载数据失败', 'error'));
+}
+
+function getPendingLabel(bizId) {
+  const p = pendingApprovals.find(a => a.bizId === bizId);
+  if (!p) return null;
+  const opMap = { 'CREATE': '新增-待审批', 'UPDATE': '修改-待审批', 'DELETE': '删除-待审批' };
+  return opMap[p.operationType] || '待审批';
+}
+
+function renderTable(list, page) {
+  const tbody = document.getElementById('tableBody');
+  const bankCode = document.getElementById('searchBankCode').value.trim().toLowerCase();
+  const bankName = document.getElementById('searchBankName').value.trim().toLowerCase();
+  const codeType = document.getElementById('searchCodeType').value;
+  const pendingCreates = pendingApprovals.filter(a => a.operationType === 'CREATE').filter(a => {
+    try {
+      const d = JSON.parse(a.operationData);
+      if (bankCode && !(d.bankCode || '').toLowerCase().includes(bankCode)) return false;
+      if (bankName && !(d.bankName || '').toLowerCase().includes(bankName)) return false;
+      if (codeType && d.codeType !== codeType) return false;
+      return true;
+    } catch(e) { return false; }
+  });
+  const allRows = [];
+
+  (list || []).forEach(r => {
+    const label = getPendingLabel(r.id);
+    allRows.push({ type: 'data', data: r, pendingLabel: label });
+  });
+
+  pendingCreates.forEach(a => {
+    try {
+      const d = JSON.parse(a.operationData);
+      allRows.push({ type: 'pending-create', data: d, approval: a });
+    } catch(e) {}
+  });
+
+  if (allRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999">暂无数据</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allRows.map((row, i) => {
+    const r = row.data;
+    const typeTag = r.codeType === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+
+    if (row.type === 'pending-create') {
+      return `<tr style="background:#fffbe6">
+        <td style="font-family:monospace">${r.bankCode || '-'}</td>
+        <td>${r.bankName || '-'}</td>
+        <td>${typeTag}</td>
+        <td><span class="tag tag-orange">新增-待审批</span></td>
+      </tr>`;
+    }
+
+    if (row.pendingLabel) {
+      const labelCls = row.pendingLabel.includes('删除') ? 'tag-red' : 'tag-orange';
+      return `<tr style="background:#fffbe6">
+        <td style="font-family:monospace">${r.bankCode}</td>
+        <td>${r.bankName}</td>
+        <td>${typeTag}</td>
+        <td><span class="tag ${labelCls}">${row.pendingLabel}</span></td>
+      </tr>`;
+    }
+
+    return `<tr ondblclick="showDetail(${r.id})">
+      <td style="font-family:monospace">${r.bankCode}</td>
+      <td>${r.bankName}</td>
+      <td>${typeTag}</td>
+      <td>
+        <button class="btn-link btn-sm" onclick="event.stopPropagation();showDetail(${r.id})">详情</button>
+        <button class="btn-link btn-sm" onclick="event.stopPropagation();openEditModal(${r.id})">编辑</button>
+        <button class="btn-link btn-sm" style="color:var(--error)" onclick="event.stopPropagation();openDeleteModal(${r.id})">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(page) {
+  document.getElementById('paginationInfo').textContent = `共 ${page.totalElements} 条`;
+  const totalPages = page.totalPages;
+  const pagesDiv = document.getElementById('paginationPages');
+  let html = '';
+  for (let i = 0; i < totalPages; i++) {
+    html += `<div class="page-btn${i === page.number ? ' active' : ''}" onclick="goPage(${i})">${i + 1}</div>`;
+  }
+  pagesDiv.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  loadData();
+}
+
+function resetSearch() {
+  document.getElementById('searchBankCode').value = '';
+  document.getElementById('searchBankName').value = '';
+  document.getElementById('searchCodeType').value = '';
+  currentPage = 0;
+  loadData();
+}
+
+function showDetail(id) {
+  fetch('/api/bank-mappings/' + id)
+    .then(r => r.json())
+    .then(r => {
+      document.getElementById('detailBody').innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-label">行号</div><div class="detail-value" style="font-family:monospace">${r.bankCode}</div>
+          <div class="detail-label">行名</div><div class="detail-value">${r.bankName}</div>
+          <div class="detail-label">类型</div><div class="detail-value">${r.codeType}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">审批信息</div>
+          <div class="detail-grid">
+            <div class="detail-label">制单人</div><div class="detail-value">${r.maker || '-'}</div>
+            <div class="detail-label">制单时间</div><div class="detail-value">${r.makerTime || '-'}</div>
+            <div class="detail-label">审批人</div><div class="detail-value">${r.checker || '-'}</div>
+            <div class="detail-label">审批时间</div><div class="detail-value">${r.checkerTime || '-'}</div>
+          </div>
+        </div>`;
+      openModal('detailModal');
+    })
+    .catch(() => showToast('加载详情失败', 'error'));
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('addModalTitle').textContent = '新增行号映射';
+  document.getElementById('formBankCode').value = '';
+  document.getElementById('formBankName').value = '';
+  document.getElementById('formCodeType').value = '';
+  document.getElementById('formRemark').value = '';
+  openModal('addModal');
+}
+
+function openEditModal(id) {
+  fetch('/api/bank-mappings/' + id)
+    .then(r => r.json())
+    .then(r => {
+      editingId = r.id;
+      document.getElementById('addModalTitle').textContent = '编辑行号映射';
+      document.getElementById('formBankCode').value = r.bankCode || '';
+      document.getElementById('formBankName').value = r.bankName || '';
+      document.getElementById('formCodeType').value = r.codeType || '';
+      document.getElementById('formRemark').value = r.remark || '';
+      openModal('addModal');
+    })
+    .catch(() => showToast('加载数据失败', 'error'));
+}
+
+function submitForm() {
+  const operationData = {
+    bankCode: document.getElementById('formBankCode').value.trim(),
+    bankName: document.getElementById('formBankName').value.trim(),
+    codeType: document.getElementById('formCodeType').value,
+    remark: document.getElementById('formRemark').value.trim()
+  };
+
+  fetch('/api/approvals/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bizType: 'BANK_MAPPING',
+      operationType: editingId ? 'UPDATE' : 'CREATE',
+      bizId: editingId || null,
+      operationData: operationData,
+      makerId: 'admin'
+    })
+  })
+    .then(r => {
+      if (r.ok) {
+        showToast('已提交审批，等待审核', 'success');
+        closeModal('addModal');
+        loadData();
+      } else {
+        r.text().then(t => showToast('提交失败: ' + t, 'error'));
+      }
+    })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+loadData();
+</script>
+</body>
+</html>

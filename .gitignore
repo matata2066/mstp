@@ -44,3 +44,6 @@ ui/vite.config.js.timestamp-*
 # Playwright
 tests/playwright-report/
 tests/test-results/
+
+# H2 Database
+data/

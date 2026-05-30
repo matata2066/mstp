@@ -120,13 +120,17 @@ mvn clean package
 
 ### 3. 后端启动
 
-**开发环境（H2 内存库，零配置）：**
+**开发环境（H2 文件数据库，零配置）：**
 
 ```bash
-cd server
-mvn spring-boot:run -pl mstp-app -Dspring-boot.run.profiles=dev
+# 首次启动（自动建表+填充初始数据）
+java -jar mstp-app/target/mstp-app-1.0.0-SNAPSHOT.jar --spring.profiles.active=dev --spring.sql.init.mode=always
+
+# 日常启动（数据持久化）
+java -jar mstp-app/target/mstp-app-1.0.0-SNAPSHOT.jar --spring.profiles.active=dev
+
 # H2 控制台: http://localhost:8080/h2-console
-# JDBC URL: jdbc:h2:mem:mstp  用户名: sa  密码: 空
+# JDBC URL: jdbc:h2:file:d:/git/mstp/data/mstp;MODE=Oracle  用户名: sa  密码: 空
 ```
 
 **开发环境（Docker Oracle XE）：**
@@ -259,19 +263,31 @@ npm run test:debug
 
 | 模式 | Profile | 数据库 | 适用场景 |
 |------|---------|--------|----------|
-| H2 内存库 | `dev` | H2（Oracle 兼容模式） | 快速启动、单元测试、无需安装 |
+| H2 文件库 | `dev` | H2（Oracle 兼容模式） | 本地开发、数据持久化 |
 | Docker Oracle | `oracle` | Oracle XE 21c | 本地开发调试、Oracle 语法验证 |
 | 生产 Oracle | `prod` | OraaS / Oracle RAC | 生产部署 |
 
-### 模式一：H2 内存库（推荐快速启动）
+### 模式一：H2 文件数据库（推荐本地开发）
 
 ```bash
-mvn spring-boot:run -pl mstp-app -Dspring-boot.run.profiles=dev
+# 首次启动（自动建表+填充初始数据）
+java -jar mstp-app/target/mstp-app-1.0.0-SNAPSHOT.jar --spring.profiles.active=dev --spring.sql.init.mode=always
+
+# 日常启动（数据持久化，不再重新初始化）
+java -jar mstp-app/target/mstp-app-1.0.0-SNAPSHOT.jar --spring.profiles.active=dev
+
+# 如需重置数据，删除 data/ 目录后用首次启动命令即可
+rm -rf data/
 ```
 
 - 零安装，启动即用
-- H2 控制台：`http://localhost:8080/h2-console`（JDBC URL: `jdbc:h2:mem:mstp`，用户名: `sa`，密码: 空）
-- JPA `ddl-auto=create-drop`，自动建表，停止后数据丢失
+- 数据持久化在 `data/mstp.mv.db` 文件中，重启不丢失
+- 默认不自动执行初始化脚本（`spring.sql.init.mode=never`），手工修改的数据不受影响
+- H2 控制台：`http://localhost:8080/h2-console`
+  - JDBC URL：`jdbc:h2:file:d:/git/mstp/data/mstp;MODE=Oracle`（用绝对路径）
+  - 用户名：`sa`，密码：空
+  - **注意**：后端运行时 H2 Console 无法同时连接（文件锁），需先停服务
+- `data/` 目录已加入 `.gitignore`，不会提交到 Git
 - Flyway 禁用（H2 不完全兼容 Oracle DDL）
 - **注意**：H2 不支持 Oracle 专有语法（如 `PARTITION BY RANGE`、`NUMTOYMINTERVAL`），生产 SQL 需在 Oracle 环境验证
 

@@ -61,18 +61,18 @@ test.describe('弹窗交互', () => {
   });
 });
 
-test.describe('数据脱敏', () => {
-  test('收款账号映射页面账号脱敏显示', async ({ page }) => {
+test.describe('数据不脱敏', () => {
+  test('收款账号映射页面账号不脱敏显示', async ({ page }) => {
     await navigateTo(page, 'accountMapping');
     const firstAccountCell = page.locator('tbody tr:first-child td').nth(1);
     const text = await firstAccountCell.textContent();
-    expect(text).toContain('****');
+    expect(text).not.toContain('********');
   });
 
-  test('支付指令页面账号脱敏显示', async ({ page }) => {
+  test('支付指令页面账号不脱敏显示', async ({ page }) => {
     await navigateTo(page, 'paymentQuery');
     const firstPayerAccountCell = page.locator('tbody tr:first-child td').nth(3);
     const text = await firstPayerAccountCell.textContent();
-    expect(text).toContain('****');
+    expect(text).not.toContain('********');
   });
 });

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 付款账号配置</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">付款账号配置</div>
+        <button class="btn btn-primary" onclick="openAddModal()">+ 新增</button>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">渠道</span>
+          <select class="form-select" id="searchChannel"><option value="">全部</option><option value="CNAPS">CNAPS</option><option value="CIPS">CIPS</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">币种</span>
+          <select class="form-select" id="searchPaymentChannel"><option value="">全部</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="loadData()">查询</button>
+        <button class="btn" onclick="resetSearch()">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>渠道</th><th>付款行行号</th><th>付款行名称</th><th>付款账号</th><th>付款户名</th><th>币种</th><th>授权状态</th><th>操作</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="paginationInfo">共 0 条</span>
+          <div class="pagination-pages" id="paginationPages"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal-overlay">
+  <div class="modal" style="width:440px">
+    <div class="modal-header">
+      <div class="modal-title">确认删除</div>
+      <button class="modal-close" onclick="closeModal('confirmModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-body">
+        <div class="confirm-icon">⚠️</div>
+        <div class="confirm-text">确认删除该记录？</div>
+        <div class="confirm-sub">提交后需审核通过才会执行删除</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('confirmModal')">取消</button>
+      <button class="btn btn-primary" style="background:var(--error);border-color:var(--error);color:#fff" onclick="doDelete()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">付款账号配置详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+  </div>
+</div>
+
+<div id="addModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="addModalTitle">新增付款账号配置</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-label required">渠道</div>
+        <select class="form-select" id="formChannel"><option value="">请选择</option><option value="CNAPS">CNAPS</option><option value="CIPS">CIPS</option></select>
+        <div class="form-label required">付款行行号</div>
+        <input class="form-input" id="formPayerBankCode" placeholder="请输入付款行行号">
+        <div class="form-label required">付款行名称</div>
+        <input class="form-input" id="formPayerBankName" placeholder="请输入付款行名称">
+        <div class="form-label required">付款账号</div>
+        <input class="form-input" id="formPayerAccountNo" placeholder="请输入付款账号">
+        <div class="form-label required">付款户名</div>
+        <input class="form-input" id="formPayerAccountName" placeholder="请输入付款户名">
+        <div class="form-label required">币种</div>
+        <select class="form-select" id="formCurrency"><option value="">请选择</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option></select>
+        <div class="form-label">备注</div>
+        <input class="form-input" id="formRemark" placeholder="请输入备注">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addModal')">取消</button>
+      <button class="btn btn-primary" onclick="submitForm()">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<div id="authModal" class="modal-overlay">
+  <div class="modal" style="width:440px">
+    <div class="modal-header">
+      <div class="modal-title">发起授权</div>
+      <button class="modal-close" onclick="closeModal('authModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-body">
+        <div class="confirm-icon">🔐</div>
+        <div class="confirm-text">确认对该付款账号发起授权？</div>
+        <div class="confirm-sub">授权后系统将向下游支付系统声明对该账号的付款权限</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('authModal')">取消</button>
+      <button class="btn btn-primary" onclick="doAuthorize()">确认授权</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('payer-config');
+initHeader([{text:'映射管理',href:'#'},{text:'付款配置'}]);
+
+let currentPage = 0;
+let pageSize = 20;
+let editingId = null;
+let authorizeId = null;
+let deleteId = null;
+let pendingApprovals = [];
+
+function openDeleteModal(id) {
+  deleteId = id;
+  openModal('confirmModal');
+}
+
+function doDelete() {
+  fetch('/api/approvals/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bizType: 'PAYER_CONFIG',
+      operationType: 'DELETE',
+      bizId: deleteId,
+      operationData: {},
+      makerId: 'admin'
+    })
+  })
+    .then(r => {
+      if (r.ok) {
+        showToast('已提交删除审批，等待审核', 'success');
+        closeModal('confirmModal');
+        loadData();
+      } else {
+        r.text().then(t => showToast('提交失败: ' + t, 'error'));
+      }
+    })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+function loadData() {
+  const channel = document.getElementById('searchChannel').value;
+  const currency = document.getElementById('searchPaymentChannel').value;
+  const params = new URLSearchParams({ page: currentPage, size: pageSize });
+  if (channel) params.append('channel', channel);
+  if (currency) params.append('paymentChannel', currency);
+
+  Promise.all([
+    fetch('/api/payer-configs?' + params.toString()).then(r => r.json()),
+    fetch('/api/approvals?bizType=PAYER_CONFIG&status=PENDING&size=100').then(r => r.json())
+  ]).then(([page, approvalPage]) => {
+    pendingApprovals = approvalPage.content || [];
+    renderTable(page.content, page);
+    renderPagination(page);
+  }).catch(() => showToast('加载数据失败', 'error'));
+}
+
+function getPendingLabel(bizId) {
+  const p = pendingApprovals.find(a => a.bizId === bizId);
+  if (!p) return null;
+  const opMap = { 'CREATE': '新增-待审批', 'UPDATE': '修改-待审批', 'DELETE': '删除-待审批' };
+  return opMap[p.operationType] || '待审批';
+}
+
+function renderTable(list, page) {
+  const tbody = document.getElementById('tableBody');
+  const channel = document.getElementById('searchChannel').value;
+  const paymentChannel = document.getElementById('searchPaymentChannel').value;
+  const pendingCreates = pendingApprovals.filter(a => a.operationType === 'CREATE').filter(a => {
+    try {
+      const d = JSON.parse(a.operationData);
+      if (channel && d.channel !== channel) return false;
+      if (paymentChannel && d.currency !== paymentChannel) return false;
+      return true;
+    } catch(e) { return false; }
+  });
+  const allRows = [];
+
+  (list || []).forEach(r => {
+    const label = getPendingLabel(r.id);
+    allRows.push({ type: 'data', data: r, pendingLabel: label });
+  });
+
+  pendingCreates.forEach(a => {
+    try {
+      const d = JSON.parse(a.operationData);
+      allRows.push({ type: 'pending-create', data: d, approval: a });
+    } catch(e) {}
+  });
+
+  if (allRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999">暂无数据</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allRows.map((row, i) => {
+    const r = row.data;
+    const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+    const currencyTag = r.currency === 'CNY' ? '<span class="tag tag-green">CNY</span>' : r.currency === 'USD' ? '<span class="tag tag-blue">USD</span>' : '<span class="tag tag-purple">EUR</span>';
+    const authTag = r.isAuthorized
+      ? '<span class="tag tag-green">✅ 已授权</span>'
+      : '<span class="tag tag-orange">❌ 未授权</span>';
+
+    if (row.type === 'pending-create') {
+      return `<tr style="background:#fffbe6">
+        <td>${channelTag}</td>
+        <td style="font-family:monospace">${r.payerBankCode || '-'}</td>
+        <td>${r.payerBankName || '-'}</td>
+        <td>${r.payerAccountNo || '-'}</td>
+        <td>${r.payerAccountName || '-'}</td>
+        <td>${currencyTag}</td>
+        <td>${authTag}</td>
+        <td><span class="tag tag-orange">新增-待审批</span></td>
+      </tr>`;
+    }
+
+    if (row.pendingLabel) {
+      const labelCls = row.pendingLabel.includes('删除') ? 'tag-red' : 'tag-orange';
+      return `<tr style="background:#fffbe6">
+        <td>${channelTag}</td>
+        <td style="font-family:monospace">${r.payerBankCode}</td>
+        <td>${r.payerBankName}</td>
+        <td>${r.payerAccountNo}</td>
+        <td>${r.payerAccountName}</td>
+        <td>${currencyTag}</td>
+        <td>${authTag}</td>
+        <td><span class="tag ${labelCls}">${row.pendingLabel}</span></td>
+      </tr>`;
+    }
+
+    const authBtn = !r.isAuthorized ? `<button class="btn-link btn-sm" onclick="event.stopPropagation();openAuthModal(${r.id})">发起授权</button>` : '';
+    return `<tr ondblclick="showDetail(${r.id})">
+      <td>${channelTag}</td>
+      <td style="font-family:monospace">${r.payerBankCode}</td>
+      <td>${r.payerBankName}</td>
+      <td>${r.payerAccountNo}</td>
+      <td>${r.payerAccountName}</td>
+      <td>${currencyTag}</td>
+      <td>${authTag}</td>
+      <td>
+        <button class="btn-link btn-sm" onclick="event.stopPropagation();showDetail(${r.id})">详情</button>
+        <button class="btn-link btn-sm" onclick="event.stopPropagation();openEditModal(${r.id})">编辑</button>
+        <button class="btn-link btn-sm" style="color:var(--error)" onclick="event.stopPropagation();openDeleteModal(${r.id})">删除</button>
+        ${authBtn}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(page) {
+  document.getElementById('paginationInfo').textContent = `共 ${page.totalElements} 条`;
+  const totalPages = page.totalPages;
+  const pagesDiv = document.getElementById('paginationPages');
+  let html = '';
+  for (let i = 0; i < totalPages; i++) {
+    html += `<div class="page-btn${i === page.number ? ' active' : ''}" onclick="goPage(${i})">${i + 1}</div>`;
+  }
+  pagesDiv.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  loadData();
+}
+
+function resetSearch() {
+  document.getElementById('searchChannel').value = '';
+  document.getElementById('searchPaymentChannel').value = '';
+  currentPage = 0;
+  loadData();
+}
+
+function showDetail(id) {
+  fetch('/api/payer-configs/' + id)
+    .then(r => r.json())
+    .then(r => {
+      const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+      const currencyTag = r.currency === 'CNY' ? '<span class="tag tag-green">CNY</span>' : r.currency === 'USD' ? '<span class="tag tag-blue">USD</span>' : '<span class="tag tag-purple">EUR</span>';
+      document.getElementById('detailBody').innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-label">渠道</div><div class="detail-value">${channelTag}</div>
+          <div class="detail-label">付款行行号</div><div class="detail-value" style="font-family:monospace">${r.payerBankCode}</div>
+          <div class="detail-label">付款行名称</div><div class="detail-value">${r.payerBankName}</div>
+          <div class="detail-label">付款账号</div><div class="detail-value">${r.payerAccountNo}</div>
+          <div class="detail-label">付款户名</div><div class="detail-value">${r.payerAccountName}</div>
+          <div class="detail-label">币种</div><div class="detail-value">${currencyTag}</div>
+          <div class="detail-label">授权状态</div><div class="detail-value">${r.isAuthorized?'已授权':'未授权'}</div>
+        </div>`;
+      openModal('detailModal');
+    })
+    .catch(() => showToast('加载详情失败', 'error'));
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('addModalTitle').textContent = '新增付款账号配置';
+  document.getElementById('formChannel').value = '';
+  document.getElementById('formPayerBankCode').value = '';
+  document.getElementById('formPayerBankName').value = '';
+  document.getElementById('formPayerAccountNo').value = '';
+  document.getElementById('formPayerAccountName').value = '';
+  document.getElementById('formCurrency').value = '';
+  document.getElementById('formRemark').value = '';
+  openModal('addModal');
+}
+
+function openEditModal(id) {
+  fetch('/api/payer-configs/' + id)
+    .then(r => r.json())
+    .then(r => {
+      editingId = r.id;
+      document.getElementById('addModalTitle').textContent = '编辑付款账号配置';
+      document.getElementById('formChannel').value = r.channel || '';
+      document.getElementById('formPayerBankCode').value = r.payerBankCode || '';
+      document.getElementById('formPayerBankName').value = r.payerBankName || '';
+      document.getElementById('formPayerAccountNo').value = r.payerAccountNo || '';
+      document.getElementById('formPayerAccountName').value = r.payerAccountName || '';
+      document.getElementById('formCurrency').value = r.currency || '';
+      document.getElementById('formRemark').value = r.remark || '';
+      openModal('addModal');
+    })
+    .catch(() => showToast('加载数据失败', 'error'));
+}
+
+function submitForm() {
+  const operationData = {
+    channel: document.getElementById('formChannel').value,
+    payerBankCode: document.getElementById('formPayerBankCode').value.trim(),
+    payerBankName: document.getElementById('formPayerBankName').value.trim(),
+    payerAccountNo: document.getElementById('formPayerAccountNo').value.trim(),
+    payerAccountName: document.getElementById('formPayerAccountName').value.trim(),
+    currency: document.getElementById('formCurrency').value,
+    remark: document.getElementById('formRemark').value.trim()
+  };
+
+  fetch('/api/approvals/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bizType: 'PAYER_CONFIG',
+      operationType: editingId ? 'UPDATE' : 'CREATE',
+      bizId: editingId || null,
+      operationData: operationData,
+      makerId: 'admin'
+    })
+  })
+    .then(r => {
+      if (r.ok) {
+        showToast('已提交审批，等待审核', 'success');
+        closeModal('addModal');
+        loadData();
+      } else {
+        r.text().then(t => showToast('提交失败: ' + t, 'error'));
+      }
+    })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+function openAuthModal(id) {
+  authorizeId = id;
+  openModal('authModal');
+}
+
+function doAuthorize() {
+  fetch('/api/payer-configs/' + authorizeId + '/authorize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(r => {
+      if (r.ok) {
+        showToast('授权请求已发起', 'success');
+        closeModal('authModal');
+        loadData();
+      } else {
+        r.text().then(t => showToast('授权失败: ' + t, 'error'));
+      }
+    })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+loadData();
+</script>
+</body>
+</html>

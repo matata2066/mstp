@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 支付指令查询</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    .status-flow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin-top: 8px;
+    }
+    .status-node {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      white-space: nowrap;
+      color: #bbb;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      transition: all 0.2s;
+    }
+    .status-node.reached {
+      color: var(--text-secondary);
+      background: #e6f4ff;
+      border-color: #91caff;
+    }
+    .status-node.current {
+      color: #fff;
+      font-weight: 600;
+      border-color: transparent;
+    }
+    .status-node.current.cls-green { background: var(--success); }
+    .status-node.current.cls-blue { background: var(--primary); }
+    .status-node.current.cls-red { background: var(--error); }
+    .status-node.current.cls-orange { background: var(--warning); }
+    .status-node.current.cls-gray { background: #8c8c8c; }
+    .status-arrow {
+      display: inline-flex;
+      align-items: center;
+      color: #d9d9d9;
+      font-size: 10px;
+      margin: 0 2px;
+    }
+    .status-arrow.reached { color: var(--primary); }
+    .branch-row {
+      display: flex;
+      align-items: center;
+      margin-top: 4px;
+      padding-left: 20px;
+    }
+    .branch-arrow {
+      color: var(--error);
+      font-size: 10px;
+      margin-right: 4px;
+    }
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      border: 1px solid var(--warning);
+      background: #fff7e6;
+      color: var(--warning);
+      transition: all 0.2s;
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+    .retry-btn:hover { background: #ffd591; border-color: var(--warning); }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">支付指令查询</div>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">交易ID</span>
+          <input class="form-input" id="searchTxnId" placeholder="请输入交易ID">
+        </div>
+        <div class="form-item">
+          <span class="form-label">收款账号</span>
+          <input class="form-input" id="searchPayeeAccountNo" placeholder="请输入收款账号">
+        </div>
+        <div class="form-item">
+          <span class="form-label">渠道</span>
+          <select class="form-select" id="searchChannel"><option value="">全部</option><option value="CNAPS">CNAPS</option><option value="CIPS">CIPS</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">状态</span>
+          <select class="form-select" id="searchStatus"><option value="">全部</option><option>GCMS</option><option>VALIDATING</option><option>SENDING</option><option>CITIFT_PENDING</option><option>CITIFT_SUCC</option><option>LCP_PENDING</option><option>LCP_CLEARED</option><option>CIPS_PENDING</option><option>CIPS_CLEARED</option><option>VALIDATING_FAILED</option><option>CITIFT_PENDING_TIMEOUT</option><option>LCP_PENDING_TIMEOUT</option><option>CIPS_PENDING_TIMEOUT</option><option>SEND_FAILED</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="loadData()">查询</button>
+        <button class="btn" onclick="resetSearch()">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>交易ID</th><th>渠道</th><th>付款行</th><th>付款账号</th><th>付款户名</th><th>收款行</th><th>收款账号</th><th>收款户名</th><th>金额</th><th>记账日期</th><th>交易附言</th><th>状态</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="paginationInfo">共 0 条</span>
+          <div class="pagination-pages" id="paginationPages"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal" style="width:740px">
+    <div class="modal-header">
+      <div class="modal-title">交易详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer" id="detailFooter">
+      <button class="btn" onclick="closeModal('detailModal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="retryConfirm" class="modal-overlay">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <div class="modal-title">确认重试</div>
+      <button class="modal-close" onclick="closeModal('retryConfirm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-body">
+        <div class="confirm-icon">🔄</div>
+        <div class="confirm-text">确认重新从 Validating 开始处理？</div>
+        <div class="confirm-sub">系统将重置状态并重新执行要素校验流程</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('retryConfirm')">取消</button>
+      <button class="btn btn-primary" onclick="doRetry()">确认重试</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('payment-query');
+initHeader([{text:'交易查询',href:'#'},{text:'支付指令'}]);
+
+const statusMap = {
+  'GCMS':                  { label:'GCMS',                cls:'gray' },
+  'VALIDATING':            { label:'Validating',           cls:'gray' },
+  'VALIDATING_FAILED':     { label:'Validating Failed',    cls:'red' },
+  'SENDING':               { label:'Sending',              cls:'blue' },
+  'CITIFT_PENDING':         { label:'CitiFT Pending',       cls:'blue' },
+  'CITIFT_SUCC':            { label:'CitiFT Succ',          cls:'green' },
+  'LCP_PENDING':            { label:'LCP Pending',           cls:'blue' },
+  'LCP_CLEARED':            { label:'LCP Cleared',           cls:'green' },
+  'CIPS_PENDING':           { label:'CIPS Pending',          cls:'blue' },
+  'CIPS_CLEARED':           { label:'CIPS Cleared',          cls:'green' },
+  'CITIFT_PENDING_TIMEOUT': { label:'CitiFT Pending (timeout)',cls:'orange' },
+  'LCP_PENDING_TIMEOUT':    { label:'LCP Pending (timeout)',   cls:'orange' },
+  'CIPS_PENDING_TIMEOUT':   { label:'CIPS Pending (timeout)',  cls:'orange' },
+  'SEND_FAILED':            { label:'Send Failed',           cls:'red' },
+};
+
+const cnapsSequence = ['GCMS','VALIDATING','SENDING','CITIFT_PENDING','CITIFT_SUCC','LCP_PENDING','LCP_CLEARED'];
+const cipsSequence  = ['GCMS','VALIDATING','SENDING','CITIFT_PENDING','CITIFT_SUCC','CIPS_PENDING','CIPS_CLEARED'];
+
+const timeoutBranches = {
+  'CITIFT_PENDING_TIMEOUT': 'CITIFT_PENDING',
+  'LCP_PENDING_TIMEOUT':    'LCP_PENDING',
+  'CIPS_PENDING_TIMEOUT':   'CIPS_PENDING',
+};
+
+let currentPage = 0;
+let pageSize = 20;
+let currentRetryTxnId = null;
+
+function getSequence(channel) {
+  return channel === 'CNAPS' ? cnapsSequence : cipsSequence;
+}
+
+function buildStatusFlow(currentStatus, channel) {
+  const seq = getSequence(channel);
+  const s = statusMap[currentStatus] || { label: currentStatus, cls:'gray' };
+  const timeoutFrom = timeoutBranches[currentStatus];
+  const isValidateFailed = currentStatus === 'VALIDATING_FAILED';
+
+  let reachedSet = new Set();
+  if (!timeoutFrom && !isValidateFailed && currentStatus !== 'SEND_FAILED') {
+    const idx = seq.indexOf(currentStatus);
+    if (idx >= 0) for (let i = 0; i <= idx; i++) reachedSet.add(seq[i]);
+  } else if (timeoutFrom || isValidateFailed) {
+    const from = timeoutFrom || 'VALIDATING';
+    const idx = seq.indexOf(from);
+    if (idx >= 0) for (let i = 0; i <= idx; i++) reachedSet.add(seq[i]);
+    reachedSet.add(currentStatus);
+  } else {
+    reachedSet.add('GCMS');
+    reachedSet.add('VALIDATING');
+    reachedSet.add('SENDING');
+    reachedSet.add(currentStatus);
+  }
+
+  let html = '<div style="margin-top:4px">';
+  html += '<div class="status-flow">';
+  seq.forEach((st, i) => {
+    const isCurrent = st === currentStatus;
+    const isReached = reachedSet.has(st);
+    const stInfo = statusMap[st];
+
+    if (i > 0) {
+      const arrowReached = reachedSet.has(seq[i - 1]) && (isReached || isCurrent);
+      html += `<span class="status-arrow${arrowReached ? ' reached' : ''}">▸</span>`;
+    }
+
+    if (isCurrent) {
+      html += `<span class="status-node current cls-${stInfo.cls}">${stInfo.label}</span>`;
+    } else if (isReached) {
+      html += `<span class="status-node reached">${stInfo.label}</span>`;
+    } else {
+      html += `<span class="status-node">${stInfo.label}</span>`;
+    }
+
+    if ((timeoutFrom || isValidateFailed) && st === (timeoutFrom || 'VALIDATING')) {
+      html += `<span class="status-arrow reached" style="transform:rotate(90deg);margin:0 2px">▸</span>`;
+      html += `<span class="status-node current ${isValidateFailed?'cls-red':'cls-orange'}">${statusMap[currentStatus].label}</span>`;
+    }
+  });
+  html += '</div>';
+
+  if (currentStatus === 'SEND_FAILED') {
+    html += '<div class="branch-row"><span class="branch-arrow">▸</span><span class="status-node current cls-red">Send Failed</span></div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function loadData() {
+  const txnId = document.getElementById('searchTxnId').value.trim();
+  const payeeAccountNo = document.getElementById('searchPayeeAccountNo').value.trim();
+  const channel = document.getElementById('searchChannel').value;
+  const status = document.getElementById('searchStatus').value;
+  const params = new URLSearchParams({ page: currentPage, size: pageSize });
+  if (txnId) params.append('txnId', txnId);
+  if (payeeAccountNo) params.append('payeeAccountNo', payeeAccountNo);
+  if (channel) params.append('channel', channel);
+  if (status) params.append('status', status);
+
+  fetch('/api/payment-instructions?' + params.toString())
+    .then(r => r.json())
+    .then(page => {
+      renderTable(page.content);
+      renderPagination(page);
+    })
+    .catch(() => showToast('加载数据失败', 'error'));
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('tableBody');
+  if (!list || list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#999">暂无数据</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(r => {
+    const s = statusMap[r.status] || { label: r.status, cls:'gray' };
+    const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+    return `<tr ondblclick="showDetail('${r.txnId || r.id}')">
+      <td style="font-family:monospace;font-size:12px">${r.txnId || r.id}</td>
+      <td>${channelTag}</td>
+      <td>${r.payerBankName || '-'}</td>
+      <td>${r.payerAccountNo || '-'}</td>
+      <td>${r.payerAccountName || '-'}</td>
+      <td>${r.payeeBankName || '-'}</td>
+      <td>${r.payeeAccountNo || '-'}</td>
+      <td>${r.payeeAccountName || '-'}</td>
+      <td>${formatAmount(r.amount || 0)}</td>
+      <td>${r.valueDate || '-'}</td>
+      <td>${r.remarkChinese || '-'}</td>
+      <td><span class="tag tag-${s.cls}">${s.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(page) {
+  document.getElementById('paginationInfo').textContent = `共 ${page.totalElements} 条`;
+  const totalPages = page.totalPages;
+  const pagesDiv = document.getElementById('paginationPages');
+  let html = '';
+  for (let i = 0; i < totalPages; i++) {
+    html += `<div class="page-btn${i === page.number ? ' active' : ''}" onclick="goPage(${i})">${i + 1}</div>`;
+  }
+  pagesDiv.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  loadData();
+}
+
+function resetSearch() {
+  document.getElementById('searchTxnId').value = '';
+  document.getElementById('searchPayeeAccountNo').value = '';
+  document.getElementById('searchChannel').value = '';
+  document.getElementById('searchStatus').value = '';
+  currentPage = 0;
+  loadData();
+}
+
+function showDetail(txnId) {
+  fetch('/api/payment-instructions/txn/' + txnId)
+    .then(r => r.json())
+    .then(r => {
+      const s = statusMap[r.status] || { label: r.status, cls:'gray' };
+      const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
+
+      let timelineHtml = (r.timeline || []).map(t => {
+        const toInfo = statusMap[t.to] || { label: t.to, cls:'gray' };
+        const dotCls = t.to.includes('TIMEOUT') ? 'warning' : t.to.includes('CLEARED') || t.to === 'CITIFT_SUCC' ? 'success' : t.to === 'SEND_FAILED' || t.to.includes('_FAILED') ? 'error' : '';
+        return `<div class="timeline-item">
+          <div class="timeline-dot ${dotCls}"></div>
+          <div class="timeline-content">
+            <div class="timeline-time">${t.time}</div>
+            <div class="timeline-text">${statusMap[t.from]?.label || t.from} → ${toInfo.label}</div>
+          </div>
+        </div>`;
+      }).join('');
+
+      const retryBtnHtml = r.status === 'VALIDATING_FAILED'
+        ? `<button class="retry-btn" onclick="openRetry('${r.txnId || r.id}')">🔄 重试</button>`
+        : '';
+
+      document.getElementById('detailFooter').innerHTML = `
+        <button class="btn" onclick="closeModal('detailModal')">关闭</button>${retryBtnHtml}`;
+
+      document.getElementById('detailBody').innerHTML = `
+        <div class="detail-section-title">基本信息</div>
+        <div class="detail-grid">
+          <div class="detail-label">交易ID</div><div class="detail-value" style="font-family:monospace">${r.txnId || r.id}</div>
+          <div class="detail-label">上游消息ID</div><div class="detail-value" style="font-family:monospace">${r.sourceMsgId || '-'}</div>
+          <div class="detail-label">渠道</div><div class="detail-value">${channelTag}</div>
+          <div class="detail-label">记账日期</div><div class="detail-value">${r.valueDate || '-'}</div>
+          <div class="detail-label">入库时间</div><div class="detail-value" style="font-family:monospace">${r.createdTime || (r.timeline && r.timeline[0]?.time ? r.valueDate + ' ' + r.timeline[0].time : '-')}</div>
+          <div class="detail-label">交易附言</div><div class="detail-value">${r.remarkChinese || '-'}</div>
+          <div class="detail-label">状态</div><div class="detail-value">
+            <span class="tag tag-${s.cls}" style="margin-bottom:4px">${s.label}</span>
+            ${buildStatusFlow(r.status, r.channel)}
+          </div>
+          <div class="detail-label">下游参考号</div><div class="detail-value" style="font-family:monospace">${r.downstreamRef || '-'}</div>
+          ${r.errorCode ? `<div class="detail-label">错误码</div><div class="detail-value" style="color:var(--error)">${r.errorCode}</div>` : ''}
+          ${r.errorMessage ? `<div class="detail-label">错误信息</div><div class="detail-value" style="color:var(--error)">${r.errorMessage}</div>` : ''}
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">付款信息</div>
+          <div class="detail-grid">
+            <div class="detail-label">付款行行号</div><div class="detail-value" style="font-family:monospace">${r.payerBankCode || '-'}</div>
+            <div class="detail-label">付款行名称</div><div class="detail-value">${r.payerBankName || '-'}</div>
+            <div class="detail-label">付款账号</div><div class="detail-value">${r.payerAccountNo || '-'}</div>
+            <div class="detail-label">付款账户名</div><div class="detail-value">${r.payerAccountName || '-'}</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">收款信息</div>
+          <div class="detail-grid">
+            <div class="detail-label">收款行行号</div><div class="detail-value" style="font-family:monospace">${r.payeeBankCode || '-'}</div>
+            <div class="detail-label">收款行名称</div><div class="detail-value">${r.payeeBankName || '-'}</div>
+            <div class="detail-label">收款账号</div><div class="detail-value">${r.payeeAccountNo || '-'}</div>
+            <div class="detail-label">收款账户名</div><div class="detail-value">${r.payeeAccountName || '-'}</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">金额信息</div>
+          <div class="detail-grid">
+            <div class="detail-label">金额</div><div class="detail-value">${formatAmount(r.amount || 0)} ${r.currency || 'CNY'}</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">状态变更记录</div>
+          <div class="timeline">${timelineHtml}</div>
+        </div>`;
+      openModal('detailModal');
+    })
+    .catch(() => showToast('加载详情失败', 'error'));
+}
+
+function openRetry(txnId) {
+  currentRetryTxnId = txnId;
+  openModal('retryConfirm');
+}
+
+function doRetry() {
+  fetch('/api/payment-instructions/txn/' + currentRetryTxnId + '/retry', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(r => {
+      if (r.ok) {
+        showToast('重试请求已发起', 'success');
+        closeAllModals();
+        loadData();
+      } else {
+        r.text().then(t => showToast('重试失败: ' + t, 'error'));
+      }
+    })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+loadData();
+</script>
+</body>
+</html>

@@ -18,5 +18,19 @@
             <groupId>com.mstp</groupId>
             <artifactId>mstp-repository</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.mstp</groupId>
+            <artifactId>mstp-service-mapping</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 </project>
