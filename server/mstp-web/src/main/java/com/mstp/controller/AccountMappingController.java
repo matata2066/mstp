@@ -2,6 +2,7 @@ package com.mstp.controller;
 
 import com.mstp.model.entity.AccountMapping;
 import com.mstp.service.mapping.AccountMappingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/account-mappings")
 @RequiredArgsConstructor
+@Tag(name = "4. 账户映射", description = "账户映射配置管理")
 public class AccountMappingController {
 
     private final AccountMappingService service;

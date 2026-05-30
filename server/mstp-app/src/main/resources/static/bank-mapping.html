@@ -124,7 +124,7 @@ function openDeleteModal(id) {
 }
 
 function doDelete() {
-  fetch('/api/approvals/submit', {
+  fetchWithAuth('/api/approvals/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -157,8 +157,8 @@ function loadData() {
   if (codeType) params.append('codeType', codeType);
 
   Promise.all([
-    fetch('/api/bank-mappings?' + params.toString()).then(r => r.json()),
-    fetch('/api/approvals?bizType=BANK_MAPPING&status=PENDING&size=100').then(r => r.json())
+    fetchWithAuth('/api/bank-mappings?' + params.toString()).then(r => r.json()),
+    fetchWithAuth('/api/approvals?bizType=BANK_MAPPING&status=PENDING&size=100').then(r => r.json())
   ]).then(([page, approvalPage]) => {
     pendingApprovals = approvalPage.content || [];
     renderTable(page.content, page);
@@ -266,7 +266,7 @@ function resetSearch() {
 }
 
 function showDetail(id) {
-  fetch('/api/bank-mappings/' + id)
+  fetchWithAuth('/api/bank-mappings/' + id)
     .then(r => r.json())
     .then(r => {
       document.getElementById('detailBody').innerHTML = `
@@ -300,7 +300,7 @@ function openAddModal() {
 }
 
 function openEditModal(id) {
-  fetch('/api/bank-mappings/' + id)
+  fetchWithAuth('/api/bank-mappings/' + id)
     .then(r => r.json())
     .then(r => {
       editingId = r.id;
@@ -322,7 +322,7 @@ function submitForm() {
     remark: document.getElementById('formRemark').value.trim()
   };
 
-  fetch('/api/approvals/submit', {
+  fetchWithAuth('/api/approvals/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

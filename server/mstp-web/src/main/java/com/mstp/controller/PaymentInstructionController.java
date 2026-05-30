@@ -4,6 +4,7 @@ import com.mstp.model.entity.PaymentInstruction;
 import com.mstp.model.entity.PaymentInstructionId;
 import com.mstp.model.entity.PaymentStatusLog;
 import com.mstp.service.payment.PaymentInstructionService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/payment-instructions")
 @RequiredArgsConstructor
+@Tag(name = "3. 付款指令", description = "付款指令查询与状态管理")
 public class PaymentInstructionController {
 
     private final PaymentInstructionService service;

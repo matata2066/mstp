@@ -147,7 +147,7 @@ function openDeleteModal(id) {
 }
 
 function doDelete() {
-  fetch('/api/approvals/submit', {
+  fetchWithAuth('/api/approvals/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -178,8 +178,8 @@ function loadData() {
   if (currency) params.append('paymentChannel', currency);
 
   Promise.all([
-    fetch('/api/payer-configs?' + params.toString()).then(r => r.json()),
-    fetch('/api/approvals?bizType=PAYER_CONFIG&status=PENDING&size=100').then(r => r.json())
+    fetchWithAuth('/api/payer-configs?' + params.toString()).then(r => r.json()),
+    fetchWithAuth('/api/approvals?bizType=PAYER_CONFIG&status=PENDING&size=100').then(r => r.json())
   ]).then(([page, approvalPage]) => {
     pendingApprovals = approvalPage.content || [];
     renderTable(page.content, page);
@@ -302,7 +302,7 @@ function resetSearch() {
 }
 
 function showDetail(id) {
-  fetch('/api/payer-configs/' + id)
+  fetchWithAuth('/api/payer-configs/' + id)
     .then(r => r.json())
     .then(r => {
       const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
@@ -336,7 +336,7 @@ function openAddModal() {
 }
 
 function openEditModal(id) {
-  fetch('/api/payer-configs/' + id)
+  fetchWithAuth('/api/payer-configs/' + id)
     .then(r => r.json())
     .then(r => {
       editingId = r.id;
@@ -364,7 +364,7 @@ function submitForm() {
     remark: document.getElementById('formRemark').value.trim()
   };
 
-  fetch('/api/approvals/submit', {
+  fetchWithAuth('/api/approvals/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -393,7 +393,7 @@ function openAuthModal(id) {
 }
 
 function doAuthorize() {
-  fetch('/api/payer-configs/' + authorizeId + '/authorize', {
+  fetchWithAuth('/api/payer-configs/' + authorizeId + '/authorize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
   })

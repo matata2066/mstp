@@ -2,6 +2,7 @@ package com.mstp.controller;
 
 import com.mstp.model.entity.RemarkMapping;
 import com.mstp.service.mapping.RemarkMappingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/remark-mappings")
 @RequiredArgsConstructor
+@Tag(name = "6. 摘要映射", description = "摘要映射配置管理")
 public class RemarkMappingController {
 
     private final RemarkMappingService service;

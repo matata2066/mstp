@@ -141,7 +141,7 @@ function loadData() {
   if (bizType) params.append('bizType', bizType);
   if (makerId) params.append('makerId', makerId);
 
-  fetch('/api/approvals?' + params.toString())
+  fetchWithAuth('/api/approvals?' + params.toString())
     .then(r => r.json())
     .then(page => {
       renderTable(page.content);
@@ -242,7 +242,7 @@ function renderDiffTable(bizType, operationData, originalData) {
 
 function showDetail(id) {
   currentApprovalId = id;
-  fetch('/api/approvals/' + id)
+  fetchWithAuth('/api/approvals/' + id)
     .then(r => r.json())
     .then(r => {
       currentApprovalRecord = r;
@@ -341,7 +341,7 @@ function openRejectModal() {
 }
 
 function doApprove() {
-  fetch('/api/approvals/' + currentApprovalId + '/approve', {
+  fetchWithAuth('/api/approvals/' + currentApprovalId + '/approve', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ checkerId: 'admin' })
@@ -364,7 +364,7 @@ function doReject() {
     showToast('请输入拒绝原因', 'info');
     return;
   }
-  fetch('/api/approvals/' + currentApprovalId + '/reject', {
+  fetchWithAuth('/api/approvals/' + currentApprovalId + '/reject', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ checkerId: 'admin', reason: reason })

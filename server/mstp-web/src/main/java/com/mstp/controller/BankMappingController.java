@@ -2,6 +2,7 @@ package com.mstp.controller;
 
 import com.mstp.model.entity.BankMapping;
 import com.mstp.service.mapping.BankMappingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/bank-mappings")
 @RequiredArgsConstructor
+@Tag(name = "5. 银行映射", description = "银行映射配置管理")
 public class BankMappingController {
 
     private final BankMappingService service;
