@@ -38,7 +38,10 @@ public class PaymentInstructionService {
         if (status != null && !status.isBlank()) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
         }
-        return repository.findAll(spec, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedTime")));
+        return repository.findAll(spec, PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("valueDate"),
+                Sort.Order.desc("createdTime")
+        )));
     }
 
     public Optional<PaymentInstruction> findById(PaymentInstructionId id) {

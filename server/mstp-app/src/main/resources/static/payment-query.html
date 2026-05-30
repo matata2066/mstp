@@ -112,7 +112,7 @@
         <div class="table-wrapper">
           <table>
             <thead>
-              <tr><th>交易ID</th><th>渠道</th><th>付款行</th><th>付款账号</th><th>付款户名</th><th>收款行</th><th>收款账号</th><th>收款户名</th><th>金额</th><th>记账日期</th><th>交易附言</th><th>状态</th></tr>
+              <tr><th>渠道</th><th>收款行</th><th>收款账号</th><th>收款户名</th><th>金额</th><th>记账日期</th><th>交易附言</th><th>状态</th></tr>
             </thead>
             <tbody id="tableBody"></tbody>
           </table>
@@ -278,18 +278,14 @@ function loadData() {
 function renderTable(list) {
   const tbody = document.getElementById('tableBody');
   if (!list || list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#999">暂无数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999">暂无数据</td></tr>';
     return;
   }
   tbody.innerHTML = list.map(r => {
     const s = statusMap[r.status] || { label: r.status, cls:'gray' };
     const channelTag = r.channel === 'CNAPS' ? '<span class="tag tag-blue">CNAPS</span>' : '<span class="tag tag-purple">CIPS</span>';
     return `<tr ondblclick="showDetail('${r.txnId || r.id}')">
-      <td style="font-family:monospace;font-size:12px">${r.txnId || r.id}</td>
       <td>${channelTag}</td>
-      <td>${r.payerBankName || '-'}</td>
-      <td>${r.payerAccountNo || '-'}</td>
-      <td>${r.payerAccountName || '-'}</td>
       <td>${r.payeeBankName || '-'}</td>
       <td>${r.payeeAccountNo || '-'}</td>
       <td>${r.payeeAccountName || '-'}</td>
