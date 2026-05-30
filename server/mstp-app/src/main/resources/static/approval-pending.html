@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 审批查询</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    .diff-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .diff-table th { background:#f5f5f5; padding:6px 10px; text-align:left; border:1px solid #e8e8e8; font-weight:500; }
+    .diff-table td { padding:6px 10px; border:1px solid #e8e8e8; }
+    .diff-table .field-name { width:100px; color:#666; background:#fafafa; white-space:nowrap; }
+    .diff-table .old-val { width:45%; }
+    .diff-table .new-val { width:45%; }
+    .diff-changed { background:#fff7e6; }
+    .diff-old { color:#cf1322; text-decoration:line-through; }
+    .diff-new { color:#389e0d; font-weight:500; }
+    .original-section { margin-bottom:12px; }
+    .original-section-title { font-weight:500; margin-bottom:6px; color:#333; }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">审批查询</div>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">业务类型</span>
+          <select class="form-select" id="searchBizType"><option value="">全部</option><option value="ACCOUNT_MAPPING">账号映射</option><option value="BANK_MAPPING">行号映射</option><option value="REMARK_MAPPING">附言映射</option><option value="PAYER_CONFIG">付款配置</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">制单人</span>
+          <input class="form-input" id="searchMakerId" placeholder="请输入制单人">
+        </div>
+        <button class="btn btn-primary" onclick="loadData()">查询</button>
+        <button class="btn" onclick="resetSearch()">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>审批单号</th><th>业务类型</th><th>操作类型</th><th>制单人</th><th>制单时间</th><th>操作</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="paginationInfo">共 0 条</span>
+          <div class="pagination-pages" id="paginationPages"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal" style="width:660px">
+    <div class="modal-header">
+      <div class="modal-title">审批详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer" id="detailFooter">
+      <button class="btn" style="color:var(--error);border-color:var(--error)" onclick="openRejectModal()">拒绝</button>
+      <button class="btn btn-primary" onclick="openApproveModal()">通过</button>
+    </div>
+  </div>
+</div>
+
+<div id="approveModal" class="modal-overlay">
+  <div class="modal" style="width:640px">
+    <div class="modal-header">
+      <div class="modal-title">审批确认</div>
+      <button class="modal-close" onclick="closeModal('approveModal')">✕</button>
+    </div>
+    <div class="modal-body" id="approveBody">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('approveModal')">取消</button>
+      <button class="btn btn-primary" onclick="doApprove()">确认通过</button>
+    </div>
+  </div>
+</div>
+
+<div id="rejectModal" class="modal-overlay">
+  <div class="modal" style="width:440px">
+    <div class="modal-header">
+      <div class="modal-title">拒绝审批</div>
+      <button class="modal-close" onclick="closeModal('rejectModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-label required">拒绝原因</div>
+        <textarea class="form-input" id="rejectReason" style="height:80px;resize:vertical" placeholder="请输入拒绝原因"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('rejectModal')">取消</button>
+      <button class="btn" style="background:var(--error);border-color:var(--error);color:#fff" onclick="doReject()">确认拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('approval-query');
+initHeader([{text:'映射管理',href:'#'},{text:'审批查询'}]);
+
+let currentPage = 0;
+let pageSize = 20;
+let currentApprovalId = null;
+let currentApprovalRecord = null;
+
+function formatTime(val) {
+  if (!val) return '-';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+const fieldLabels = {
+  ACCOUNT_MAPPING: { accountNo:'收款账号', accountName:'账户名称', currency:'币种', accountType:'账户类型', remark:'备注' },
+  BANK_MAPPING: { bankCode:'行号', bankName:'行名', codeType:'类型', remark:'备注' },
+  REMARK_MAPPING: { matchPattern:'匹配规则', remarkChinese:'中文附言', remark:'备注' },
+  PAYER_CONFIG: { channel:'渠道', payerBankCode:'付款行行号', payerBankName:'付款行名称', payerAccountNo:'付款账号', payerAccountName:'付款户名', currency:'币种', remark:'备注' }
+};
+
+const ignoreFields = ['id','isDeleted','createdBy','createdTime','updatedBy','updatedTime','isAuthorized','authorizedTime'];
+
+function loadData() {
+  const bizType = document.getElementById('searchBizType').value;
+  const makerId = document.getElementById('searchMakerId').value.trim();
+  const params = new URLSearchParams({ page: currentPage, size: pageSize, status: 'PENDING' });
+  if (bizType) params.append('bizType', bizType);
+  if (makerId) params.append('makerId', makerId);
+
+  fetch('/api/approvals?' + params.toString())
+    .then(r => r.json())
+    .then(page => {
+      renderTable(page.content);
+      renderPagination(page);
+    })
+    .catch(() => showToast('加载数据失败', 'error'));
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('tableBody');
+  if (!list || list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999">暂无数据</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map((r, i) => {
+    const bizTypeMap = {'ACCOUNT_MAPPING':'账号映射','BANK_MAPPING':'行号映射','REMARK_MAPPING':'附言映射','PAYER_CONFIG':'付款配置'};
+    const opTypeMap = {'CREATE':'新增','UPDATE':'修改','DELETE':'删除'};
+    const bizTag = r.bizType === 'ACCOUNT_MAPPING' ? 'tag-blue' : r.bizType === 'BANK_MAPPING' ? 'tag-purple' : r.bizType === 'REMARK_MAPPING' ? 'tag-cyan' : 'tag-orange';
+    const opTag = r.operationType === 'CREATE' ? 'tag-green' : r.operationType === 'UPDATE' ? 'tag-blue' : 'tag-red';
+    return `<tr ondblclick="showDetail(${r.id})">
+      <td style="font-family:monospace">${r.approvalId}</td>
+      <td><span class="tag ${bizTag}">${bizTypeMap[r.bizType] || r.bizType}</span></td>
+      <td><span class="tag ${opTag}">${opTypeMap[r.operationType] || r.operationType}</span></td>
+      <td>${r.makerId}</td>
+      <td>${formatTime(r.makerTime)}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail(${r.id})">审批</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(page) {
+  document.getElementById('paginationInfo').textContent = `共 ${page.totalElements} 条`;
+  const totalPages = page.totalPages;
+  const pagesDiv = document.getElementById('paginationPages');
+  let html = '';
+  for (let i = 0; i < totalPages; i++) {
+    html += `<div class="page-btn${i === page.number ? ' active' : ''}" onclick="goPage(${i})">${i + 1}</div>`;
+  }
+  pagesDiv.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  loadData();
+}
+
+function resetSearch() {
+  document.getElementById('searchBizType').value = '';
+  document.getElementById('searchMakerId').value = '';
+  currentPage = 0;
+  loadData();
+}
+
+function renderDetailFields(bizType, d) {
+  const labels = fieldLabels[bizType] || {};
+  let html = '<div class="detail-grid">';
+  for (const [key, label] of Object.entries(labels)) {
+    const val = d[key] != null ? d[key] : '-';
+    html += `<div class="detail-label">${label}</div><div class="detail-value">${val}</div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderOriginalContent(bizType, originalData) {
+  if (!originalData) return '<div style="color:#999">无原始数据</div>';
+  let orig = {};
+  try { orig = JSON.parse(originalData); } catch(e) { return '<div style="color:#999">解析失败</div>'; }
+  return renderDetailFields(bizType, orig);
+}
+
+function renderDiffTable(bizType, operationData, originalData) {
+  let newData = {}, origData = {};
+  try { newData = JSON.parse(operationData || '{}'); } catch(e) {}
+  try { origData = JSON.parse(originalData || '{}'); } catch(e) {}
+
+  const labels = fieldLabels[bizType] || {};
+  let html = '<table class="diff-table"><thead><tr><th>字段</th><th>原值</th><th>新值</th></tr></thead><tbody>';
+
+  for (const [key, label] of Object.entries(labels)) {
+    const oldVal = origData[key] != null ? String(origData[key]) : '';
+    const newVal = newData[key] != null ? String(newData[key]) : '';
+    const changed = oldVal !== newVal;
+    html += '<tr>';
+    html += `<td class="field-name">${label}</td>`;
+    if (changed) {
+      html += `<td class="old-val diff-changed"><span class="diff-old">${oldVal || '-'}</span></td>`;
+      html += `<td class="new-val diff-changed"><span class="diff-new">${newVal || '-'}</span></td>`;
+    } else {
+      html += `<td class="old-val">${oldVal || '-'}</td>`;
+      html += `<td class="new-val">${newVal || '-'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function showDetail(id) {
+  currentApprovalId = id;
+  fetch('/api/approvals/' + id)
+    .then(r => r.json())
+    .then(r => {
+      currentApprovalRecord = r;
+      let d = {};
+      try { d = JSON.parse(r.operationData || '{}'); } catch(e) {}
+
+      let detailHtml = '';
+      if (r.operationType === 'DELETE') {
+        detailHtml = `
+          <div class="detail-section">
+            <div class="detail-section-title">待删除记录内容</div>
+            ${renderOriginalContent(r.bizType, r.originalData)}
+          </div>`;
+      } else if (r.operationType === 'UPDATE') {
+        detailHtml = `
+          <div class="detail-section">
+            <div class="detail-section-title">变更内容</div>
+            ${renderDiffTable(r.bizType, r.operationData, r.originalData)}
+          </div>`;
+      } else {
+        detailHtml = `
+          <div class="detail-section">
+            <div class="detail-section-title">变更内容</div>
+            ${renderDetailFields(r.bizType, d)}
+          </div>`;
+      }
+
+      const bizTypeMap = {'ACCOUNT_MAPPING':'账号映射','BANK_MAPPING':'行号映射','REMARK_MAPPING':'附言映射','PAYER_CONFIG':'付款配置'};
+      const opTypeMap = {'CREATE':'新增','UPDATE':'修改','DELETE':'删除'};
+      document.getElementById('detailBody').innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-label">审批单号</div><div class="detail-value" style="font-family:monospace">${r.approvalId}</div>
+          <div class="detail-label">业务类型</div><div class="detail-value">${bizTypeMap[r.bizType] || r.bizType}</div>
+          <div class="detail-label">操作类型</div><div class="detail-value">${opTypeMap[r.operationType] || r.operationType}</div>
+          <div class="detail-label">制单人</div><div class="detail-value">${r.makerId}</div>
+          <div class="detail-label">制单时间</div><div class="detail-value">${formatTime(r.makerTime)}</div>
+        </div>
+        ${detailHtml}`;
+      openModal('detailModal');
+    })
+    .catch(() => showToast('加载详情失败', 'error'));
+}
+
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
+}
+
+function buildApproveConfirmHtml() {
+  const r = currentApprovalRecord;
+  if (!r) return '';
+
+  const opTypeMap = {'CREATE':'新增','UPDATE':'修改','DELETE':'删除'};
+
+  if (r.operationType === 'DELETE') {
+    return `
+      <div class="confirm-body">
+        <div class="confirm-icon">⚠️</div>
+        <div class="confirm-text">确认删除以下记录？</div>
+        <div class="confirm-sub">删除后记录将标记为已删除</div>
+      </div>
+      <div class="original-section" style="margin-top:12px">
+        <div class="original-section-title">待删除记录：</div>
+        ${renderOriginalContent(r.bizType, r.originalData)}
+      </div>`;
+  }
+
+  if (r.operationType === 'UPDATE') {
+    return `
+      <div class="confirm-body">
+        <div class="confirm-icon">✅</div>
+        <div class="confirm-text">确认通过该修改？</div>
+        <div class="confirm-sub">通过后变更将立即生效</div>
+      </div>
+      <div class="original-section" style="margin-top:12px">
+        <div class="original-section-title">变更比对：</div>
+        ${renderDiffTable(r.bizType, r.operationData, r.originalData)}
+      </div>`;
+  }
+
+  return `
+    <div class="confirm-body">
+      <div class="confirm-icon">✅</div>
+      <div class="confirm-text">确认通过该审批？</div>
+      <div class="confirm-sub">通过后变更将立即生效</div>
+    </div>`;
+}
+
+function openApproveModal() {
+  document.getElementById('approveBody').innerHTML = buildApproveConfirmHtml();
+  openModal('approveModal');
+}
+
+function openRejectModal() {
+  document.getElementById('rejectReason').value = '';
+  openModal('rejectModal');
+}
+
+function doApprove() {
+  fetch('/api/approvals/' + currentApprovalId + '/approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ checkerId: 'admin' })
+  })
+    .then(r => {
+      if (r.ok) {
+        showToast('审批通过', 'success');
+        closeAllModals();
+        loadData();
+      } else {
+        r.text().then(t => showToast('审批失败: ' + t, 'error'));
+      }
+    })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+function doReject() {
+  const reason = document.getElementById('rejectReason').value.trim();
+  if (!reason) {
+    showToast('请输入拒绝原因', 'info');
+    return;
+  }
+  fetch('/api/approvals/' + currentApprovalId + '/reject', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ checkerId: 'admin', reason: reason })
+  })
+    .then(r => {
+      if (r.ok) {
+        showToast('已拒绝', 'success');
+        closeAllModals();
+        loadData();
+      } else {
+        r.text().then(t => showToast('操作失败: ' + t, 'error'));
+      }
+    })
+    .catch(() => showToast('请求失败', 'error'));
+}
+
+loadData();
+</script>
+</body>
+</html>

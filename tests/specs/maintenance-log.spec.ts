@@ -28,13 +28,12 @@ test.describe('维护记录查询页面', () => {
     expect(texts).toContain('附言映射');
   });
 
-  test('审批状态筛选有全部/待审批/通过/拒绝', async ({ page }) => {
+  test('审批状态筛选有全部/通过/拒绝', async ({ page }) => {
     const selects = page.locator('select');
     const statusSelect = selects.nth(1);
     const options = statusSelect.locator('option');
     const texts = await options.allTextContents();
     expect(texts).toContain('全部');
-    expect(texts).toContain('待审批');
     expect(texts).toContain('通过');
     expect(texts).toContain('拒绝');
   });
@@ -44,10 +43,13 @@ test.describe('维护记录查询页面', () => {
     await expect(page.locator('.modal-overlay.show .modal-title')).toContainText('维护记录详情');
   });
 
-  test('详情弹窗显示变更内容', async ({ page }) => {
+  test('详情弹窗显示修改内容', async ({ page }) => {
     await openDetailByDblClick(page, 0);
     const body = page.locator('.modal-overlay.show .modal-body');
-    await expect(body).toContainText('变更内容');
+    const hasContent = await body.evaluate(el => {
+      return el.textContent?.includes('修改内容') || el.textContent?.includes('新增内容') || el.textContent?.includes('删除内容') || false;
+    });
+    expect(hasContent).toBeTruthy();
   });
 
   test('拒绝的记录显示拒绝原因', async ({ page }) => {

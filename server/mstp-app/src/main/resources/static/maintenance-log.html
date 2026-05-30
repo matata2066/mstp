@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MSTP - 维护记录查询</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    .diff-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .diff-table th { background:#f5f5f5; padding:6px 10px; text-align:left; border:1px solid #e8e8e8; font-weight:500; }
+    .diff-table td { padding:6px 10px; border:1px solid #e8e8e8; }
+    .diff-table .field-name { width:100px; color:#666; background:#fafafa; white-space:nowrap; }
+    .diff-table .old-val { width:45%; }
+    .diff-table .new-val { width:45%; }
+    .diff-changed { background:#fff7e6; }
+    .diff-old { color:#cf1322; text-decoration:line-through; }
+    .diff-new { color:#389e0d; font-weight:500; }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <div id="sidebar" class="sidebar"></div>
+  <div class="main">
+    <div id="header" class="header"></div>
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">维护记录查询</div>
+      </div>
+
+      <div class="search-bar">
+        <div class="form-item">
+          <span class="form-label">业务类型</span>
+          <select class="form-select" id="searchBizType"><option value="">全部</option><option value="ACCOUNT_MAPPING">账号映射</option><option value="BANK_MAPPING">行号映射</option><option value="REMARK_MAPPING">附言映射</option><option value="PAYER_CONFIG">付款配置</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">审批状态</span>
+          <select class="form-select" id="searchStatus"><option value="">全部</option><option value="APPROVED">通过</option><option value="REJECTED">拒绝</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">制单人</span>
+          <input class="form-input" id="searchMakerId" placeholder="请输入制单人">
+        </div>
+        <button class="btn btn-primary" onclick="loadData()">查询</button>
+        <button class="btn" onclick="resetSearch()">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>审批单号</th><th>业务类型</th><th>操作类型</th><th>制单人</th><th>审批人</th><th>审批时间</th><th>操作</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="paginationInfo">共 0 条</span>
+          <div class="pagination-pages" id="paginationPages"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+  <div class="modal" style="width:660px">
+    <div class="modal-header">
+      <div class="modal-title">维护记录详情</div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+initSidebar('maintenance-log');
+initHeader([{text:'交易查询',href:'#'},{text:'维护记录'}]);
+
+let currentPage = 0;
+let pageSize = 20;
+
+function formatTime(val) {
+  if (!val) return '-';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+const fieldLabels = {
+  ACCOUNT_MAPPING: { accountNo:'收款账号', accountName:'账户名称', currency:'币种', accountType:'账户类型', remark:'备注' },
+  BANK_MAPPING: { bankCode:'行号', bankName:'行名', codeType:'类型', remark:'备注' },
+  REMARK_MAPPING: { matchPattern:'匹配规则', remarkChinese:'中文附言', remark:'备注' },
+  PAYER_CONFIG: { channel:'渠道', payerBankCode:'付款行行号', payerBankName:'付款行名称', payerAccountNo:'付款账号', payerAccountName:'付款户名', currency:'币种', remark:'备注' }
+};
+
+function loadData() {
+  const bizType = document.getElementById('searchBizType').value;
+  const status = document.getElementById('searchStatus').value;
+  const makerId = document.getElementById('searchMakerId').value.trim();
+  const params = new URLSearchParams({ page: currentPage, size: pageSize });
+  if (bizType) params.append('bizType', bizType);
+  if (status) params.append('status', status);
+  if (makerId) params.append('makerId', makerId);
+
+  fetch('/api/maintenance-logs?' + params.toString())
+    .then(r => r.json())
+    .then(page => {
+      renderTable(page.content);
+      renderPagination(page);
+    })
+    .catch(() => showToast('加载数据失败', 'error'));
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('tableBody');
+  if (!list || list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">暂无数据</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map((r, i) => {
+    const bizTypeMap = {'ACCOUNT_MAPPING':'账号映射','BANK_MAPPING':'行号映射','REMARK_MAPPING':'附言映射','PAYER_CONFIG':'付款配置'};
+    const opTypeMap = {'CREATE':'新增','UPDATE':'修改','DELETE':'删除'};
+
+    const opTag = r.operationType === 'CREATE' ? 'tag-green' : r.operationType === 'UPDATE' ? 'tag-blue' : 'tag-red';
+
+    return `<tr ondblclick="showDetail(${r.id})">
+      <td style="font-family:monospace">${r.approvalId}</td>
+      <td>${bizTypeMap[r.bizType] || r.bizType || '-'}</td>
+      <td><span class="tag ${opTag}">${opTypeMap[r.operationType] || r.operationType}</span></td>
+      <td>${r.makerId}</td>
+      <td>${r.checkerId || '-'}</td>
+      <td>${formatTime(r.checkerTime)}</td>
+      <td><button class="btn-link btn-sm" onclick="event.stopPropagation();showDetail(${r.id})">详情</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(page) {
+  document.getElementById('paginationInfo').textContent = `共 ${page.totalElements} 条`;
+  const totalPages = page.totalPages;
+  const pagesDiv = document.getElementById('paginationPages');
+  let html = '';
+  for (let i = 0; i < totalPages; i++) {
+    html += `<div class="page-btn${i === page.number ? ' active' : ''}" onclick="goPage(${i})">${i + 1}</div>`;
+  }
+  pagesDiv.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  loadData();
+}
+
+function resetSearch() {
+  document.getElementById('searchBizType').value = '';
+  document.getElementById('searchStatus').value = '';
+  document.getElementById('searchMakerId').value = '';
+  currentPage = 0;
+  loadData();
+}
+
+function renderDetailFields(bizType, d) {
+  const labels = fieldLabels[bizType] || {};
+  let html = '<div class="detail-grid">';
+  for (const [key, label] of Object.entries(labels)) {
+    const val = d[key] != null ? d[key] : '-';
+    html += `<div class="detail-label">${label}</div><div class="detail-value">${val}</div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderOriginalContent(bizType, originalData) {
+  if (!originalData) return '<div style="color:#999">无原始数据</div>';
+  let orig = {};
+  try { orig = JSON.parse(originalData); } catch(e) { return '<div style="color:#999">解析失败</div>'; }
+  return renderDetailFields(bizType, orig);
+}
+
+function renderDiffTable(bizType, operationData, originalData) {
+  let newData = {}, origData = {};
+  try { newData = JSON.parse(operationData || '{}'); } catch(e) {}
+  try { origData = JSON.parse(originalData || '{}'); } catch(e) {}
+
+  const labels = fieldLabels[bizType] || {};
+  let html = '<table class="diff-table"><thead><tr><th>字段</th><th>原值</th><th>新值</th></tr></thead><tbody>';
+
+  for (const [key, label] of Object.entries(labels)) {
+    const oldVal = origData[key] != null ? String(origData[key]) : '';
+    const newVal = newData[key] != null ? String(newData[key]) : '';
+    const changed = oldVal !== newVal;
+    if (!changed) continue;
+    html += '<tr>';
+    html += `<td class="field-name">${label}</td>`;
+    html += `<td class="old-val diff-changed"><span class="diff-old">${oldVal || '-'}</span></td>`;
+    html += `<td class="new-val diff-changed"><span class="diff-new">${newVal || '-'}</span></td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function showDetail(id) {
+  fetch('/api/maintenance-logs/' + id)
+    .then(r => r.json())
+    .then(r => {
+      const bizTypeMap = {'ACCOUNT_MAPPING':'账号映射','BANK_MAPPING':'行号映射','REMARK_MAPPING':'附言映射','PAYER_CONFIG':'付款配置'};
+      const opTypeMap = {'CREATE':'新增','UPDATE':'修改','DELETE':'删除'};
+      const statusColor = r.status === 'APPROVED' ? 'var(--success)' : r.status === 'REJECTED' ? 'var(--error)' : 'var(--warning)';
+
+      let d = {};
+      try { d = JSON.parse(r.operationData || '{}'); } catch(e) {}
+
+      let changeHtml = '';
+      if (r.operationType === 'DELETE') {
+        changeHtml = `
+          <div class="detail-section-title">删除内容</div>
+          <div class="detail-grid">
+            <div class="detail-label">记录ID</div><div class="detail-value">${r.bizId}</div>
+          </div>
+          ${renderOriginalContent(r.bizType, r.originalData)}`;
+      } else if (r.operationType === 'UPDATE') {
+        changeHtml = `
+          <div class="detail-section-title">原记录内容</div>
+          <div class="detail-grid">
+            <div class="detail-label">记录ID</div><div class="detail-value">${r.bizId}</div>
+          </div>
+          ${renderOriginalContent(r.bizType, r.originalData)}
+          <div class="detail-section-title" style="margin-top:16px">修改内容</div>
+          ${renderDiffTable(r.bizType, r.operationData, r.originalData)}`;
+      } else {
+        changeHtml = `
+          <div class="detail-section-title">新增内容</div>
+          ${renderDetailFields(r.bizType, d)}`;
+      }
+
+      document.getElementById('detailBody').innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-label">审批单号</div><div class="detail-value" style="font-family:monospace">${r.approvalId}</div>
+          <div class="detail-label">业务类型</div><div class="detail-value">${bizTypeMap[r.bizType] || r.bizType || '-'}</div>
+          <div class="detail-label">操作类型</div><div class="detail-value">${opTypeMap[r.operationType] || r.operationType}</div>
+          <div class="detail-label">制单人</div><div class="detail-value">${r.makerId}</div>
+          <div class="detail-label">审批状态</div><div class="detail-value" style="color:${statusColor};font-weight:600">${r.status}</div>
+          <div class="detail-label">审批人</div><div class="detail-value">${r.checkerId || '-'}</div>
+          <div class="detail-label">审批时间</div><div class="detail-value">${formatTime(r.checkerTime)}</div>
+        </div>
+        <div class="detail-section">
+          ${changeHtml}
+        </div>
+        ${r.rejectReason ? `
+        <div class="detail-section">
+          <div class="detail-section-title">拒绝原因</div>
+          <div style="font-size:14px;color:var(--error);line-height:1.8">${r.rejectReason}</div>
+        </div>` : ''}`;
+      openModal('detailModal');
+    })
+    .catch(() => showToast('加载详情失败', 'error'));
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+loadData();
+</script>
+</body>
+</html>
