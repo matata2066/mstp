@@ -118,7 +118,7 @@ function openDeleteModal(id) {
 }
 
 function doDelete() {
-  fetch('/api/approvals/submit', {
+  fetchWithAuth('/api/approvals/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -149,8 +149,8 @@ function loadData() {
   if (remarkChinese) params.append('remarkChinese', remarkChinese);
 
   Promise.all([
-    fetch('/api/remark-mappings?' + params.toString()).then(r => r.json()),
-    fetch('/api/approvals?bizType=REMARK_MAPPING&status=PENDING&size=100').then(r => r.json())
+    fetchWithAuth('/api/remark-mappings?' + params.toString()).then(r => r.json()),
+    fetchWithAuth('/api/approvals?bizType=REMARK_MAPPING&status=PENDING&size=100').then(r => r.json())
   ]).then(([page, approvalPage]) => {
     pendingApprovals = approvalPage.content || [];
     renderTable(page.content, page);
@@ -258,7 +258,7 @@ function resetSearch() {
 }
 
 function showDetail(id) {
-  fetch('/api/remark-mappings/' + id)
+  fetchWithAuth('/api/remark-mappings/' + id)
     .then(r => r.json())
     .then(r => {
       const isPrefix = r.matchPattern && r.matchPattern.endsWith('%');
@@ -293,7 +293,7 @@ function openAddModal() {
 }
 
 function openEditModal(id) {
-  fetch('/api/remark-mappings/' + id)
+  fetchWithAuth('/api/remark-mappings/' + id)
     .then(r => r.json())
     .then(r => {
       editingId = r.id;
@@ -313,7 +313,7 @@ function submitForm() {
     remark: document.getElementById('formRemark').value.trim()
   };
 
-  fetch('/api/approvals/submit', {
+  fetchWithAuth('/api/approvals/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

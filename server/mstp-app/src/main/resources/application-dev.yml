@@ -26,6 +26,16 @@ spring:
   flyway:
     enabled: false
 
+mstp:
+  jwt:
+    secret: mstp-dev-jwt-secret-key-that-must-be-at-least-256-bits-long-for-hs256-algorithm
+    access-token-ttl-minutes: 30
+
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: alpha
+
 logging:
   level:
     com.mstp: DEBUG

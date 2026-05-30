@@ -78,21 +78,21 @@
 initSidebar('dashboard');
 initHeader([{text: '总览'}]);
 
-fetch('/api/payment-instructions?size=1')
+fetchWithAuth('/api/payment-instructions?size=1')
   .then(r => r.json())
   .then(page => {
     document.getElementById('paymentCount').innerHTML = `${page.totalElements}<span class="stat-unit">笔</span>`;
   })
   .catch(() => {});
 
-fetch('/api/approvals?status=PENDING&size=1')
+fetchWithAuth('/api/approvals?status=PENDING&size=1')
   .then(r => r.json())
   .then(page => {
     document.getElementById('pendingApproval').innerHTML = `${page.totalElements}<span class="stat-unit">条</span>`;
   })
   .catch(() => {});
 
-fetch('/api/payment-instructions?status=VALIDATING_FAILED,CITIFT_PENDING_TIMEOUT,LCP_PENDING_TIMEOUT,CIPS_PENDING_TIMEOUT,SEND_FAILED&size=1')
+fetchWithAuth('/api/payment-instructions?status=VALIDATING_FAILED,CITIFT_PENDING_TIMEOUT,LCP_PENDING_TIMEOUT,CIPS_PENDING_TIMEOUT,SEND_FAILED&size=1')
   .then(r => r.json())
   .then(page => {
     document.getElementById('exceptionCount').innerHTML = `${page.totalElements}<span class="stat-unit">条</span>`;

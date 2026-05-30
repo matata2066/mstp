@@ -104,7 +104,7 @@ function loadData() {
   if (status) params.append('status', status);
   if (makerId) params.append('makerId', makerId);
 
-  fetch('/api/maintenance-logs?' + params.toString())
+  fetchWithAuth('/api/maintenance-logs?' + params.toString())
     .then(r => r.json())
     .then(page => {
       renderTable(page.content);
@@ -203,7 +203,7 @@ function renderDiffTable(bizType, operationData, originalData) {
 }
 
 function showDetail(id) {
-  fetch('/api/maintenance-logs/' + id)
+  fetchWithAuth('/api/maintenance-logs/' + id)
     .then(r => r.json())
     .then(r => {
       const bizTypeMap = {'ACCOUNT_MAPPING':'账号映射','BANK_MAPPING':'行号映射','REMARK_MAPPING':'附言映射','PAYER_CONFIG':'付款配置'};

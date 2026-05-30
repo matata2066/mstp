@@ -266,7 +266,7 @@ function loadData() {
   if (channel) params.append('channel', channel);
   if (status) params.append('status', status);
 
-  fetch('/api/payment-instructions?' + params.toString())
+  fetchWithAuth('/api/payment-instructions?' + params.toString())
     .then(r => r.json())
     .then(page => {
       renderTable(page.content);
@@ -323,7 +323,7 @@ function resetSearch() {
 }
 
 function showDetail(txnId) {
-  fetch('/api/payment-instructions/txn/' + txnId)
+  fetchWithAuth('/api/payment-instructions/txn/' + txnId)
     .then(r => r.json())
     .then(r => {
       const s = statusMap[r.status] || { label: r.status, cls:'gray' };
@@ -404,7 +404,7 @@ function openRetry(txnId) {
 }
 
 function doRetry() {
-  fetch('/api/payment-instructions/txn/' + currentRetryTxnId + '/retry', {
+  fetchWithAuth('/api/payment-instructions/txn/' + currentRetryTxnId + '/retry', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
   })

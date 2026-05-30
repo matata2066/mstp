@@ -104,6 +104,9 @@ MERGE INTO MSTP_APPROVAL_RECORD (APPROVAL_ID, BIZ_TYPE, BIZ_ID, OPERATION_TYPE, 
 ('APR-20240115-0003', 'PAYER_CONFIG', 3, 'CREATE', '{"channel":"CNAPS","payerBankCode":"105100000017","payerBankName":"中国建设银行北京市分行","payerAccountNo":"1100109239100090123","payerAccountName":"建行北京分行付款专户","currency":"EUR","isAuthorized":0,"remark":"待授权"}', 'PENDING', 'maker', '2024-01-15 10:00:00', NULL, NULL, NULL, 0, 'SYSTEM', 'SYSTEM'),
 ('APR-20240115-0004', 'REMARK_MAPPING', 4, 'UPDATE', '{"id":4,"matchPattern":"FEE","remarkChinese":"手续费","remark":"已停用"}', 'REJECTED', 'maker', '2024-01-15 10:30:00', 'checker', '2024-01-15 10:40:00', '附言映射修改不符合规范', 0, 'SYSTEM', 'SYSTEM');
 
+MERGE INTO MSTP_API_CLIENT (CLIENT_ID, CLIENT_SECRET_HASH, CLIENT_NAME, STATUS, IS_DELETED, CREATED_BY, UPDATED_BY) KEY(CLIENT_ID) VALUES
+('mstp-web', '$2a$12$I2bbuu6o5xY9ba2hSuFO0eNYKvT.0FxZgg3PVKt0F3HPR5d6x0kVi', 'MSTP Web Frontend', 'ACTIVE', 0, 'SYSTEM', 'SYSTEM');
+
 MERGE INTO MSTP_AUDIT_LOG (LOG_ID, USER_ID, USER_NAME, MODULE, ACTION, TARGET_TYPE, TARGET_ID, DETAIL, CLIENT_IP) KEY(LOG_ID) VALUES
 ('AUD-20240115-0001', 'admin', '系统管理员', 'AUTH', 'LOGIN', 'USER', 'admin', '用户登录', '192.168.1.100'),
 ('AUD-20240115-0002', 'maker', '制单人', 'AUTH', 'LOGIN', 'USER', 'maker', '用户登录', '192.168.1.101'),

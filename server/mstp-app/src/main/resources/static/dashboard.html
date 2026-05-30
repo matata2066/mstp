@@ -68,14 +68,14 @@ initSidebar('dashboard');
 initHeader([{text:'工作台',href:'/dashboard.html'},{text:'总览'}]);
 
 function loadStats() {
-  fetch('/api/payment-instructions?size=1')
+  fetchWithAuth('/api/payment-instructions?size=1')
     .then(r => r.json())
     .then(page => {
       document.getElementById('todayTotal').innerHTML = `${page.totalElements}<span class="stat-unit">笔交易</span>`;
     })
     .catch(() => {});
 
-  fetch('/api/approvals?status=PENDING&size=1')
+  fetchWithAuth('/api/approvals?status=PENDING&size=1')
     .then(r => r.json())
     .then(page => {
       const count = page.totalElements || 0;
@@ -83,7 +83,7 @@ function loadStats() {
     })
     .catch(() => {});
 
-  fetch('/api/payment-instructions?status=VALIDATING_FAILED&size=1')
+  fetchWithAuth('/api/payment-instructions?status=VALIDATING_FAILED&size=1')
     .then(r => r.json())
     .then(page => {
       document.getElementById('todaySuccess').innerHTML = `${page.totalElements}<span class="stat-unit">笔异常</span>`;
@@ -92,7 +92,7 @@ function loadStats() {
 }
 
 function loadRecentTransactions() {
-  fetch('/api/payment-instructions?size=5&sort=createdTime,desc')
+  fetchWithAuth('/api/payment-instructions?size=5&sort=createdTime,desc')
     .then(r => r.json())
     .then(page => {
       const list = page.content || [];
@@ -116,9 +116,9 @@ function loadRecentTransactions() {
 
 function loadTodos() {
   Promise.all([
-    fetch('/api/approvals?status=PENDING&size=1').then(r => r.json()),
-    fetch('/api/payer-configs?authorized=false&size=1').then(r => r.json()),
-    fetch('/api/payment-instructions?status=CITIFT_PENDING_TIMEOUT,LCP_PENDING_TIMEOUT,CIPS_PENDING_TIMEOUT&size=1').then(r => r.json()),
+    fetchWithAuth('/api/approvals?status=PENDING&size=1').then(r => r.json()),
+    fetchWithAuth('/api/payer-configs?authorized=false&size=1').then(r => r.json()),
+    fetchWithAuth('/api/payment-instructions?status=CITIFT_PENDING_TIMEOUT,LCP_PENDING_TIMEOUT,CIPS_PENDING_TIMEOUT&size=1').then(r => r.json()),
   ]).then(([approvals, payers, timeouts]) => {
     const pendingCount = (approvals.totalElements || 0);
     const authCount = (payers.totalElements || 0);

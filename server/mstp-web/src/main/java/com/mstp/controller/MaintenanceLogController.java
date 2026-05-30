@@ -2,6 +2,7 @@ package com.mstp.controller;
 
 import com.mstp.model.entity.ApprovalRecord;
 import com.mstp.service.approval.ApprovalService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/maintenance-logs")
 @RequiredArgsConstructor
+@Tag(name = "9. 维护日志", description = "维护操作日志查询")
 public class MaintenanceLogController {
 
     private final ApprovalService service;

@@ -128,7 +128,7 @@ function openDeleteModal(id) {
 }
 
 function doDelete() {
-  fetch('/api/approvals/submit', {
+  fetchWithAuth('/api/approvals/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -161,8 +161,8 @@ function loadData() {
   if (currency) params.append('currency', currency);
 
   Promise.all([
-    fetch('/api/account-mappings?' + params.toString()).then(r => r.json()),
-    fetch('/api/approvals?bizType=ACCOUNT_MAPPING&status=PENDING&size=100').then(r => r.json())
+    fetchWithAuth('/api/account-mappings?' + params.toString()).then(r => r.json()),
+    fetchWithAuth('/api/approvals?bizType=ACCOUNT_MAPPING&status=PENDING&size=100').then(r => r.json())
   ]).then(([page, approvalPage]) => {
     pendingApprovals = approvalPage.content || [];
     renderTable(page.content, page);
@@ -274,7 +274,7 @@ function resetSearch() {
 }
 
 function showDetail(id) {
-  fetch('/api/account-mappings/' + id)
+  fetchWithAuth('/api/account-mappings/' + id)
     .then(r => r.json())
     .then(r => {
       const currencyTag = r.currency === 'CNY' ? '<span class="tag tag-blue">CNY</span>' : (r.currency === 'USD' ? '<span class="tag tag-purple">USD</span>' : '<span class="tag tag-gray">EUR</span>');
@@ -312,7 +312,7 @@ function openAddModal() {
 }
 
 function openEditModal(id) {
-  fetch('/api/account-mappings/' + id)
+  fetchWithAuth('/api/account-mappings/' + id)
     .then(r => r.json())
     .then(r => {
       editingId = r.id;
@@ -336,7 +336,7 @@ function submitForm() {
     remark: document.getElementById('formRemark').value.trim()
   };
 
-  fetch('/api/approvals/submit', {
+  fetchWithAuth('/api/approvals/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

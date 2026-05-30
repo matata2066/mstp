@@ -1,3 +1,47 @@
+var API_CONFIG = {
+  clientId: 'mstp-web',
+  clientSecret: 'mstp-web-secret'
+};
+
+var _tokenData = null;
+
+function _isTokenValid() {
+  if (!_tokenData || !_tokenData.accessToken) return false;
+  var now = Date.now();
+  return _tokenData.expireTime && _tokenData.expireTime > now;
+}
+
+function _acquireToken() {
+  if (_isTokenValid()) {
+    return Promise.resolve(_tokenData.accessToken);
+  }
+  return fetch('/api/auth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'clientId=' + encodeURIComponent(API_CONFIG.clientId) + '&clientSecret=' + encodeURIComponent(API_CONFIG.clientSecret)
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('Token request failed: ' + r.status);
+    return r.json();
+  })
+  .then(function(data) {
+    _tokenData = {
+      accessToken: data.accessToken,
+      expireTime: Date.now() + (data.expiresIn - 30) * 1000
+    };
+    return _tokenData.accessToken;
+  });
+}
+
+function fetchWithAuth(url, options) {
+  options = options || {};
+  return _acquireToken().then(function(token) {
+    options.headers = options.headers || {};
+    options.headers['Authorization'] = 'Bearer ' + token;
+    return fetch(url, options);
+  });
+}
+
 function initSidebar(activeId) {
   const menuItems = [
     { group: '工作台', items: [
@@ -31,7 +75,7 @@ function initSidebar(activeId) {
   html += `</div>`;
   sidebar.innerHTML = html;
 
-  fetch('/api/approvals?status=PENDING&size=1')
+  fetchWithAuth('/api/approvals?status=PENDING&size=1')
     .then(function(r) { return r.json(); })
     .then(function(page) {
       var el = document.getElementById('approval-badge');

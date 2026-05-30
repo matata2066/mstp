@@ -2,6 +2,7 @@ package com.mstp.controller;
 
 import com.mstp.model.entity.PayerAccountConfig;
 import com.mstp.service.mapping.PayerAccountConfigService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/payer-configs")
 @RequiredArgsConstructor
+@Tag(name = "7. 付款人配置", description = "付款人账户配置管理")
 public class PayerAccountConfigController {
 
     private final PayerAccountConfigService service;

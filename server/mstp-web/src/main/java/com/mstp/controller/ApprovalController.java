@@ -2,6 +2,7 @@ package com.mstp.controller;
 
 import com.mstp.model.entity.ApprovalRecord;
 import com.mstp.service.approval.ApprovalService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/approvals")
 @RequiredArgsConstructor
+@Tag(name = "2. 审批管理", description = "待审批指令查询与审批操作")
 public class ApprovalController {
 
     private final ApprovalService service;
